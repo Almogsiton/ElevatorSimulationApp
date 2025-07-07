@@ -16,10 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ElevatorApp.DataAccess\ElevatorApp.DataAccess.csproj" />
   </ItemGroup>
 

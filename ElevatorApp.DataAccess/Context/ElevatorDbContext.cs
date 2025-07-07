@@ -45,20 +45,34 @@ namespace ElevatorApp.DataAccess.Context
         /// </summary>
         public DbSet<ElevatorCallAssignment> ElevatorCallAssignments { get; set; }
 
+        /// <summary>
+        /// Configures the model mappings and relationships between entities and database tables.
+        /// </summary>
+        /// <param name="modelBuilder">The builder used to configure entity mappings.</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            
+            // Explicitly map entities to corresponding table names (singular form as per schema)
+            modelBuilder.Entity<User>().ToTable("User");
+            modelBuilder.Entity<Building>().ToTable("Building");
+            modelBuilder.Entity<Elevator>().ToTable("Elevator");
+            modelBuilder.Entity<ElevatorCall>().ToTable("ElevatorCall");
+            modelBuilder.Entity<ElevatorCallAssignment>().ToTable("ElevatorCallAssignment");
+
+            // Configure the relationship: ElevatorCallAssignment → Elevator (many-to-one)
             modelBuilder.Entity<ElevatorCallAssignment>()
                 .HasOne(e => e.Elevator)
                 .WithMany(e => e.Assignments)
                 .HasForeignKey(e => e.ElevatorId)
-                .OnDelete(DeleteBehavior.Restrict); // או DeleteBehavior.NoAction            
+                .OnDelete(DeleteBehavior.Restrict); // Prevent multiple cascade paths
+
+            // Configure the relationship: ElevatorCallAssignment → ElevatorCall (many-to-one)
             modelBuilder.Entity<ElevatorCallAssignment>()
                 .HasOne(e => e.ElevatorCall)
                 .WithMany(e => e.Assignments)
                 .HasForeignKey(e => e.ElevatorCallId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
+
 
     }
 
