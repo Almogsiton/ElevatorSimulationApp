@@ -13,6 +13,9 @@
         public const int SimulationIntervalMs = 2000;
         public const int DoorOpenTimeMs = 3000;
 
+        // Number of simulation ticks to keep doors open
+        public const int DoorOpenTicks = 3;
+
         // Status messages
         public const string StatusIdle = "Idle";
         public const string StatusMovingUp = "MovingUp";

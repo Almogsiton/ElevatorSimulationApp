@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using ElevatorApp.DataAccess.Context;
 using ElevatorApp.Services;
 using System.Text.Json.Serialization;
+using ElevatorApp.Hubs;
+using ElevatorApp.Services.Background;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,10 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
         options.JsonSerializerOptions.WriteIndented = true;
     });
+// Register SignalR services
+builder.Services.AddSignalR();
+// Register elevator background simulation service
+builder.Services.AddHostedService<ElevatorSimulationService>();
 
 
 builder.Services.AddDbContext<ElevatorDbContext>(options =>
@@ -42,5 +48,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+// Map SignalR hub for real-time elevator updates
+app.MapHub<ElevatorHub>("/elevatorHub");
 
 app.Run();
