@@ -7,5 +7,7 @@
     {
         public int BuildingId { get; set; }
         public int RequestedFloor { get; set; }
+
+        public string Direction { get; set; }
     }
 }

@@ -30,6 +30,7 @@ namespace ElevatorApp.Controllers
         [HttpPost("create")]
         public IActionResult CreateCall(CreateCallRequest request)
         {
+            Console.WriteLine($"📥 Received elevator call: buildingId={request.BuildingId}, floor={request.RequestedFloor}");
             var call = _callService.CreateCall(request.BuildingId, request.RequestedFloor);
             return Ok(call);
         }

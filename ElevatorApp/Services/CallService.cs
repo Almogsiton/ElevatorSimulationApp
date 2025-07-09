@@ -34,7 +34,7 @@ namespace ElevatorApp.Services
                 CallTime = DateTime.Now,
                 IsHandled = false
             };
-
+            Console.WriteLine($"🛠️ CallService.CreateCall - Adding call: buildingId={buildingId}, floor={requestedFloor}");
             _context.ElevatorCalls.Add(call);
             _context.SaveChanges();
 

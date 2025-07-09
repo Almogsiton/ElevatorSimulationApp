@@ -25,6 +25,7 @@ namespace ElevatorApp.Services.Background
         private readonly Dictionary<int, int> _doorTimers = new();
         private readonly IHubContext<ElevatorHub> _hubContext;
         private readonly int _tickInterval;
+        private List<Elevator> _elevatorCache = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ElevatorSimulationService"/> class.
@@ -63,17 +64,25 @@ namespace ElevatorApp.Services.Background
                     {
                         var context = scope.ServiceProvider.GetRequiredService<ElevatorDbContext>();
 
-                        var elevators = await context.Elevators.ToListAsync(stoppingToken);
+                        if (!_elevatorCache.Any())
+                        {
+                            _elevatorCache = await context.Elevators.ToListAsync(stoppingToken);
+                        }
+
                         var pendingCalls = await context.ElevatorCalls
                             .Where(call => !call.IsHandled)
                             .OrderBy(call => call.CallTime)
                             .ToListAsync(stoppingToken);
 
-                        AssignElevatorsToCalls(context, elevators, pendingCalls);
-                        MoveElevators(elevators);
-                        await HandleElevatorArrivals(context, elevators, stoppingToken);
-                        HandleDoorTimers(elevators);
-                        await BroadcastElevatorUpdates(elevators, stoppingToken);
+                        AssignElevatorsToCalls(context, _elevatorCache, pendingCalls);
+                        MoveElevators(_elevatorCache);
+                        await HandleElevatorArrivals(context, _elevatorCache, stoppingToken);
+                        HandleDoorTimers(_elevatorCache);
+                        await BroadcastElevatorUpdates(_elevatorCache, stoppingToken);
+                        foreach (var elevator in _elevatorCache)
+                        {
+                            context.Elevators.Update(elevator);
+                        }
 
                         await context.SaveChangesAsync(stoppingToken);
                     }
@@ -144,6 +153,8 @@ namespace ElevatorApp.Services.Background
         private void TryAssignToIdleElevator(ElevatorDbContext context, List<Elevator> elevators, ElevatorCall call)
         {
             var idleElevator = elevators.FirstOrDefault(e => e.Status == ElevatorStatus.Idle);
+            _logger.LogInformation($"[DEBUG] Checking idle elevator assignment for call {call.Id} in building {call.BuildingId} at floor {call.RequestedFloor}");
+
             if (idleElevator == null) return;
 
             var direction = call.RequestedFloor > idleElevator.CurrentFloor
@@ -184,6 +195,8 @@ namespace ElevatorApp.Services.Background
                     continue;
 
                 int nextTarget = elevator.TargetFloors.First();
+
+                _logger.LogInformation($"Elevator {elevator.Id} current: {elevator.CurrentFloor}, next target: {nextTarget}");
 
                 if (elevator.CurrentFloor < nextTarget)
                 {
@@ -273,6 +286,14 @@ namespace ElevatorApp.Services.Background
                                 elevator.Status = ElevatorStatus.MovingDown;
                                 elevator.Direction = ElevatorDirection.Down;
                             }
+                            else
+                            {
+                                // קומה זהה = תמשיך לפתוח דלתות בקומה הזו
+                                elevator.Status = ElevatorStatus.OpeningDoors;
+                                elevator.DoorStatus = DoorStatus.Open;
+                                _logger.LogInformation($"Elevator {elevator.Id} remains on same floor {elevator.CurrentFloor} (re-opened).");
+                                continue;
+                            }
                         }
                         else
                         {
@@ -295,6 +316,7 @@ namespace ElevatorApp.Services.Background
         }
 
 
+
         /// <summary>
         /// Sends elevator state updates to all connected clients via SignalR.
         /// </summary>
@@ -305,6 +327,7 @@ namespace ElevatorApp.Services.Background
                 var update = new
                 {
                     elevatorId = elevator.Id,
+                    buildingId = elevator.BuildingId,
                     currentFloor = elevator.CurrentFloor,
                     status = elevator.Status.ToString(),
                     direction = elevator.Direction.ToString(),
