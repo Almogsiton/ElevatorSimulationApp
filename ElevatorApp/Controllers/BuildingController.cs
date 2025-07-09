@@ -41,5 +41,21 @@ namespace ElevatorApp.Controllers
             var building = _buildingService.CreateBuilding(request.UserId, request.Name, request.NumberOfFloors);
             return Ok(building);
         }
+
+        /// <summary>
+        /// Returns the building with the specified ID.
+        /// </summary>
+        /// <param name="id">The ID of the building.</param>
+        /// <returns>The building details.</returns>
+        [HttpGet("{id}")]
+        public IActionResult GetBuildingById(int id)
+        {
+            var building = _buildingService.GetBuildingById(id);
+            if (building == null)
+                return NotFound();
+
+            return Ok(building);
+        }
+
     }
 }

@@ -32,6 +32,17 @@ namespace ElevatorApp.Services
         }
 
         /// <summary>
+        /// Retrieves a building by its ID.
+        /// </summary>
+        /// <param name="id">The building ID.</param>
+        /// <returns>The building if found; otherwise, null.</returns>
+        public Building? GetBuildingById(int id)
+        {
+            return _context.Buildings.FirstOrDefault(b => b.Id == id);
+        }
+
+
+        /// <summary>
         /// Creates a new building and associates it with the user. Automatically adds one elevator.
         /// </summary>
         /// <param name="userId">The ID of the user creating the building.</param>

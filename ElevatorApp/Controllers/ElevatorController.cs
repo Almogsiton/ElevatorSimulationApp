@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ElevatorApp.Services;
 using ElevatorApp.DataAccess.Entities;
+using ElevatorApp.DataAccess.Helpers;
 
 namespace ElevatorApp.Controllers
 {
@@ -44,5 +45,33 @@ namespace ElevatorApp.Controllers
                 DoorStatus = elevator.DoorStatus.ToString()
             });
         }
+
+        /// <summary>
+        /// Adds a destination floor to an elevator's target list.
+        /// </summary>
+        /// <param name="elevatorId">The ID of the elevator.</param>
+        /// <param name="floor">The requested destination floor.</param>
+        /// <returns>Status of the operation.</returns>
+        [HttpPost("add-destination")]
+        public IActionResult AddDestination([FromQuery] int elevatorId, [FromQuery] int floor)
+        {
+            var elevator = _elevatorService.GetElevatorStatus(elevatorId);
+
+            if (elevator == null)
+                return NotFound($"Elevator with ID {elevatorId} not found.");
+
+            if (elevator.TargetFloors.Contains(floor))
+                return BadRequest($"Floor {floor} is already in the target list.");
+
+            elevator.TargetFloors.Add(floor);
+
+            if (elevator.Direction == ElevatorDirection.Up)
+                elevator.TargetFloors = elevator.TargetFloors.Distinct().OrderBy(f => f).ToList();
+            else if (elevator.Direction == ElevatorDirection.Down)
+                elevator.TargetFloors = elevator.TargetFloors.Distinct().OrderByDescending(f => f).ToList();
+
+            return Ok($"Destination floor {floor} added to elevator {elevatorId}.");
+        }
+
     }
 }

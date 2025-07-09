@@ -36,12 +36,19 @@ namespace ElevatorApp.Services
 
         /// <summary>
         /// Registers a new user with the given email and password.
+        /// Returns null if the user already exists.
         /// </summary>
         /// <param name="email">The email address to register.</param>
         /// <param name="password">The password for the new user.</param>
-        /// <returns>The newly created <see cref="User"/> object.</returns>
-        public User Register(string email, string password)
+        /// <returns>The newly created <see cref="User"/> object, or null if email already exists.</returns>
+        public User? Register(string email, string password)
         {
+            var existingUser = _context.Users.FirstOrDefault(u => u.Email == email);
+            if (existingUser != null)
+            {
+                return null;
+            }
+
             var user = new User
             {
                 Email = email,
@@ -53,5 +60,6 @@ namespace ElevatorApp.Services
 
             return user;
         }
+
     }
 }

@@ -4,10 +4,22 @@ using ElevatorApp.Services;
 using System.Text.Json.Serialization;
 using ElevatorApp.Hubs;
 using ElevatorApp.Services.Background;
+using ElevatorApp;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -17,6 +29,9 @@ builder.Services.AddControllers()
     });
 // Register SignalR services
 builder.Services.AddSignalR();
+builder.Services.Configure<SimulationSettings>(
+    builder.Configuration.GetSection("SimulationSettings"));
+
 // Register elevator background simulation service
 builder.Services.AddHostedService<ElevatorSimulationService>();
 
@@ -44,6 +59,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors();
 
 app.UseAuthorization();
 

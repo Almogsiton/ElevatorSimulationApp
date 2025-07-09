@@ -24,17 +24,24 @@ namespace ElevatorApp.Controllers
 
         /// <summary>
         /// Registers a new user in the system.
+        /// Returns 400 Bad Request if the email is already registered.
         /// </summary>
         /// <param name="request">The user registration request containing email and password.</param>
         /// <returns>
-        /// A success response with the newly created user's ID and email.
+        /// 200 OK with user info on success, 400 BadRequest if email already exists.
         /// </returns>
         [HttpPost("register")]
         public IActionResult Register(RegisterRequest request)
         {
             var user = _userService.Register(request.Email, request.Password);
+            if (user == null)
+            {
+                return BadRequest("User already exists.");
+            }
+
             return Ok(new { user.Id, user.Email });
         }
+
 
         /// <summary>
         /// Attempts to log in a user with the given credentials.

@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using ElevatorApp.DataAccess.Helpers;
+
 
 
 namespace ElevatorApp.DataAccess.Entities
@@ -89,5 +91,12 @@ namespace ElevatorApp.DataAccess.Entities
             get { return _assignments; }
             set { _assignments = value; }
         }
+        /// <summary>
+        /// Represents the internal target floor queue for the elevator.
+        /// Not persisted to the database.
+        /// </summary>
+        [NotMapped]
+        public List<int> TargetFloors { get; set; } = new List<int>();
     }
+
 }
