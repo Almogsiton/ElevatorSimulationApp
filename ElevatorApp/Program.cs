@@ -1,16 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using ElevatorApp.DataAccess.Context;
-using ElevatorApp.Services;
-using System.Text.Json.Serialization;
-using ElevatorApp.Hubs;
-using ElevatorApp.Services.Background;
 using ElevatorApp;
-
-
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1. הגדרת חיבור ל־SQL Server
+builder.Services.AddDbContext<ElevatorDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 2. הגדרת CORS לגישה מ-React (localhost:3000)
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -22,51 +20,30 @@ builder.Services.AddCors(options =>
     });
 });
 
+// 3. הוספת Controllers ו-JSON נקי
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;        ;
         options.JsonSerializerOptions.WriteIndented = true;
     });
-// Register SignalR services
-builder.Services.AddSignalR();
-builder.Services.Configure<SimulationSettings>(
-    builder.Configuration.GetSection("SimulationSettings"));
 
-// Register elevator background simulation service
-builder.Services.AddHostedService<ElevatorSimulationService>();
-
-
-builder.Services.AddDbContext<ElevatorDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddScoped<UserService>();
-builder.Services.AddScoped<BuildingService>();
-builder.Services.AddScoped<ElevatorService>();
-builder.Services.AddScoped<CallService>();
-
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// 4. הגדרת Swagger (כלי תיעוד API)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 5. הפעלת Swagger בסביבת פיתוח
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// 6. שימוש בסיסי במידלווארים
 app.UseHttpsRedirection();
-
 app.UseCors();
-
 app.UseAuthorization();
-
 app.MapControllers();
-// Map SignalR hub for real-time elevator updates
-app.MapHub<ElevatorHub>("/elevatorHub");
 
 app.Run();

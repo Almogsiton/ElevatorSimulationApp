@@ -1,61 +1,86 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ElevatorApp.Models;
-using ElevatorApp.Services;
+using ElevatorApp.DataAccess.Context;
+using ElevatorApp.DataAccess.Entities;
+using ElevatorApp.DataAccess.Helpers;
 
 namespace ElevatorApp.Controllers
 {
-    /// <summary>
-    /// Controller for managing buildings and related operations.
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class BuildingController : ControllerBase
     {
-        private readonly BuildingService _buildingService;
+        private readonly ElevatorDbContext _db;
 
-        public BuildingController(BuildingService buildingService)
+        public BuildingController(ElevatorDbContext db)
         {
-            _buildingService = buildingService;
+            _db = db;
         }
 
-        /// <summary>
-        /// Returns the list of buildings owned by a specific user.
-        /// </summary>
-        /// <param name="userId">The ID of the user.</param>
-        /// <returns>A list of buildings.</returns>
-        [HttpGet("byUser/{userId}")]
-        public IActionResult GetBuildings(int userId)
+        [HttpPost]
+        public IActionResult CreateBuilding([FromBody] Building building)
         {
-            var buildings = _buildingService.GetBuildingsByUser(userId);
+            if (building.NumberOfFloors < Constants.MinFloorsPerBuilding ||
+                building.NumberOfFloors > Constants.MaxFloorsPerBuilding)
+            {
+                return BadRequest($"Number of floors must be between {Constants.MinFloorsPerBuilding} and {Constants.MaxFloorsPerBuilding}.");
+            }
+
+            var nameExists = _db.Buildings
+        .Any(b => b.UserId == building.UserId && b.Name == building.Name);
+
+            if (nameExists)
+            {
+                return Conflict("You already have a building with this name.");
+            }
+
+            _db.Buildings.Add(building);
+            _db.SaveChanges();
+
+            var elevator = new Elevator
+            {
+                BuildingId = building.Id,
+                CurrentFloor = Constants.DefaultGroundFloor,
+                Status = ElevatorStatus.Idle,
+                Direction = ElevatorDirection.None,
+                DoorStatus = DoorStatus.Closed
+            };
+
+            _db.Elevators.Add(elevator);
+            _db.SaveChanges();
+
+            return Ok(new { message = "Building created", buildingId = building.Id });
+        }
+
+        [HttpGet("{userId}")]
+        public IActionResult GetUserBuildings(int userId)
+        {
+            var buildings = _db.Buildings
+                .Where(b => b.UserId == userId)
+                .ToList();
+
             return Ok(buildings);
         }
 
-        /// <summary>
-        /// Creates a new building for the user and adds an elevator automatically.
-        /// </summary>
-        /// <param name="request">The building creation request.</param>
-        /// <returns>The created building.</returns>
-        [HttpPost("create")]
-        public IActionResult CreateBuilding(CreateBuildingRequest request)
+        [HttpDelete("{id}")]
+        public IActionResult DeleteBuilding(int id)
         {
-            var building = _buildingService.CreateBuilding(request.UserId, request.Name, request.NumberOfFloors);
-            return Ok(building);
-        }
+            var building = _db.Buildings.FirstOrDefault(b => b.Id == id);
 
-        /// <summary>
-        /// Returns the building with the specified ID.
-        /// </summary>
-        /// <param name="id">The ID of the building.</param>
-        /// <returns>The building details.</returns>
-        [HttpGet("{id}")]
-        public IActionResult GetBuildingById(int id)
-        {
-            var building = _buildingService.GetBuildingById(id);
             if (building == null)
-                return NotFound();
+                return NotFound("Building not found");
 
-            return Ok(building);
+            // מחק גם מעלית של הבניין
+            var elevator = _db.Elevators.FirstOrDefault(e => e.BuildingId == id);
+            if (elevator != null)
+                _db.Elevators.Remove(elevator);
+
+            _db.Buildings.Remove(building);
+            _db.SaveChanges();
+
+            return Ok("Building deleted successfully");
         }
+
+
 
     }
 }
