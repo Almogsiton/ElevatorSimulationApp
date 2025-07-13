@@ -1,0 +1,109 @@
+using ElevatorSimulationApi.Data;
+using ElevatorSimulationApi.Models.DTOs;
+using ElevatorSimulationApi.Models.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace ElevatorSimulationApi.Services;
+
+public class ElevatorCallService : IElevatorCallService
+{
+    private readonly ApplicationDbContext _context;
+
+    public ElevatorCallService(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<ElevatorCallResponse> CreateCallAsync(CreateElevatorCallRequest request)
+    {
+        Console.WriteLine($"Creating elevator call for building {request.BuildingId}, floor {request.RequestedFloor}");
+        var building = await _context.Buildings.FirstOrDefaultAsync(b => b.Id == request.BuildingId);
+        if (building == null)
+        {
+            Console.WriteLine($"Building {request.BuildingId} not found in database");
+            throw new InvalidOperationException("Building not found");
+        }
+        Console.WriteLine($"Found building: {building.Name} with {building.NumberOfFloors} floors");
+
+        if (request.RequestedFloor < 0 || request.RequestedFloor >= building.NumberOfFloors)
+        {
+            throw new InvalidOperationException("Invalid floor number");
+        }
+
+        if (request.DestinationFloor.HasValue && (request.DestinationFloor.Value < 0 || request.DestinationFloor.Value >= building.NumberOfFloors))
+        {
+            throw new InvalidOperationException("Invalid destination floor number");
+        }
+
+        var call = new ElevatorCall
+        {
+            BuildingId = request.BuildingId,
+            RequestedFloor = request.RequestedFloor,
+            DestinationFloor = request.DestinationFloor,
+            CallTime = DateTime.UtcNow,
+            IsHandled = false
+        };
+
+        _context.ElevatorCalls.Add(call);
+        await _context.SaveChangesAsync();
+
+        return new ElevatorCallResponse
+        {
+            Id = call.Id,
+            BuildingId = call.BuildingId,
+            RequestedFloor = call.RequestedFloor,
+            DestinationFloor = call.DestinationFloor,
+            CallTime = call.CallTime,
+            IsHandled = call.IsHandled
+        };
+    }
+
+    public async Task<ElevatorCallResponse> UpdateCallAsync(int callId, UpdateElevatorCallRequest request)
+    {
+        var call = await _context.ElevatorCalls
+            .Include(c => c.Building)
+            .FirstOrDefaultAsync(c => c.Id == callId);
+
+        if (call == null)
+        {
+            throw new InvalidOperationException("Call not found");
+        }
+
+        if (request.DestinationFloor < 0 || request.DestinationFloor >= call.Building.NumberOfFloors)
+        {
+            throw new InvalidOperationException("Invalid destination floor number");
+        }
+
+        call.DestinationFloor = request.DestinationFloor;
+        await _context.SaveChangesAsync();
+
+        return new ElevatorCallResponse
+        {
+            Id = call.Id,
+            BuildingId = call.BuildingId,
+            RequestedFloor = call.RequestedFloor,
+            DestinationFloor = call.DestinationFloor,
+            CallTime = call.CallTime,
+            IsHandled = call.IsHandled
+        };
+    }
+
+    public async Task<List<ElevatorCallResponse>> GetBuildingCallsAsync(int buildingId)
+    {
+        var calls = await _context.ElevatorCalls
+            .Where(c => c.BuildingId == buildingId)
+            .OrderByDescending(c => c.CallTime)
+            .Select(c => new ElevatorCallResponse
+            {
+                Id = c.Id,
+                BuildingId = c.BuildingId,
+                RequestedFloor = c.RequestedFloor,
+                DestinationFloor = c.DestinationFloor,
+                CallTime = c.CallTime,
+                IsHandled = c.IsHandled
+            })
+            .ToListAsync();
+
+        return calls;
+    }
+} 

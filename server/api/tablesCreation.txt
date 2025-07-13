@@ -1,0 +1,42 @@
+CREATE TABLE Users (
+    Id INT IDENTITY PRIMARY KEY,
+    Email NVARCHAR(255) NOT NULL,
+    Password NVARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Buildings (
+    Id INT IDENTITY PRIMARY KEY,
+    Name NVARCHAR(255) NOT NULL,
+    NumberOfFloors INT NOT NULL,
+    UserId INT NOT NULL,
+    CONSTRAINT FK_Buildings_Users FOREIGN KEY (UserId) REFERENCES Users(Id)
+);
+
+CREATE TABLE Elevators (
+    Id INT IDENTITY PRIMARY KEY,
+    BuildingId INT NOT NULL,
+    CurrentFloor INT NOT NULL,
+    Status INT NOT NULL,         -- Enum: ElevatorStatus
+    Direction INT NOT NULL,      -- Enum: ElevatorDirection
+    DoorStatus INT NOT NULL,     -- Enum: DoorStatus
+    CONSTRAINT FK_Elevators_Buildings FOREIGN KEY (BuildingId) REFERENCES Buildings(Id)
+);
+
+CREATE TABLE ElevatorCalls (
+    Id INT IDENTITY PRIMARY KEY,
+    BuildingId INT NOT NULL,
+    RequestedFloor INT NOT NULL,
+    DestinationFloor INT NULL,
+    CallTime DATETIME NOT NULL,
+    IsHandled BIT NOT NULL,
+    CONSTRAINT FK_ElevatorCalls_Buildings FOREIGN KEY (BuildingId) REFERENCES Buildings(Id)
+);
+
+CREATE TABLE ElevatorCallAssignments (
+    Id INT IDENTITY PRIMARY KEY,
+    ElevatorId INT NOT NULL,
+    ElevatorCallId INT NOT NULL,
+    AssignmentTime DATETIME NOT NULL,
+    CONSTRAINT FK_CallAssignments_Elevators FOREIGN KEY (ElevatorId) REFERENCES Elevators(Id),
+    CONSTRAINT FK_CallAssignments_Calls FOREIGN KEY (ElevatorCallId) REFERENCES ElevatorCalls(Id)
+);
