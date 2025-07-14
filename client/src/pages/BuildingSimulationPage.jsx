@@ -7,7 +7,8 @@ import ElevatorStatus from '../components/ElevatorStatus';
 import FloorButton from '../components/FloorButton';
 
 const BuildingSimulationPage = () => {
-  const { buildingId } = useParams();
+  const { buildingId } = useParams(); // buildingId is a string from the URL
+  const numericBuildingId = Number(buildingId); // always use as number
   const navigate = useNavigate();
   const { user } = useAuth();
   const [building, setBuilding] = useState(null);
@@ -35,7 +36,7 @@ const BuildingSimulationPage = () => {
 
   const loadBuilding = async () => {
     try {
-      const data = await buildingService.getBuilding(buildingId, user.userId);
+      const data = await buildingService.getBuilding(numericBuildingId, user.userId);
       setBuilding(data);
       setElevator(data.elevator);
     } catch (error) {
@@ -83,8 +84,8 @@ const BuildingSimulationPage = () => {
 
   const handleCallElevator = async (floor, direction) => {
     try {
-      console.log('Creating elevator call for building:', buildingId, 'floor:', floor);
-      const call = await elevatorCallService.createCall(buildingId, floor);
+      console.log('Creating elevator call for building:', numericBuildingId, 'floor:', floor + 1);
+      const call = await elevatorCallService.createCall(numericBuildingId, floor);
       setActiveCall(call);
       setError('');
     } catch (error) {

@@ -1,19 +1,20 @@
 import React from 'react';
 
 const FloorButton = ({ floor, onCallElevator, elevator, onSelectDestination, showDestinationButtons, numberOfFloors }) => {
+  // floor is 1-based for display, but backend expects 0-based
   const isCurrentFloor = (elevator.currentFloor + 1) === floor;
   const isElevatorAtFloor = (elevator.currentFloor + 1) === floor && elevator.doorStatus === 'Open';
 
   const handleUpCall = () => {
-    onCallElevator(floor, 'up');
+    onCallElevator(floor - 1, 'up'); // send zero-based
   };
 
   const handleDownCall = () => {
-    onCallElevator(floor, 'down');
+    onCallElevator(floor - 1, 'down'); // send zero-based
   };
 
   const handleDestinationSelect = (destinationFloor) => {
-    onSelectDestination(destinationFloor);
+    onSelectDestination(destinationFloor - 1); // send zero-based
   };
 
   return (

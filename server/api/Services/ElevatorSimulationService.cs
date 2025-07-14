@@ -34,11 +34,10 @@ public class ElevatorSimulationService : IElevatorSimulationService
                 .Include(e => e.Building)
                 .ToListAsync();
 
-            Console.WriteLine($"Processing {elevators.Count} elevators");
-            
+
+            // start proccesing the elevators 
             foreach (var elevator in elevators)
             {
-                Console.WriteLine($"Processing elevator {elevator.Id} at floor {elevator.CurrentFloor}, status: {elevator.Status}");
                 await ProcessElevatorAsync(elevator);
             }
         }
@@ -48,16 +47,20 @@ public class ElevatorSimulationService : IElevatorSimulationService
         }
     }
 
+
     private async Task ProcessElevatorAsync(Elevator elevator)
     {
+        // init elevator's target floors lists if first time 
         if (!_targetFloors.ContainsKey(elevator.Id))
         {
             _targetFloors[elevator.Id] = new List<int>();
         }
 
-        await ProcessPendingCallsAsync(elevator);
-        await ProcessElevatorMovementAsync(elevator);
-        await ProcessDoorOperationsAsync(elevator);
+        await ProcessPendingCallsAsync(elevator); // Assign pending calls to this elevator (from the database). - if idle the request will be added to target floor 
+        await ProcessElevatorMovementAsync(elevator); // Moves the elevator one floor at a time toward the next target floor (if doors are closed), update status and direction 
+        await ProcessDoorOperationsAsync(elevator); // Handles opening, closing, and waiting (dors)
+        
+        // create update message object and send it to the client 
         var updateMessage = new ElevatorUpdateMessage
         {
             ElevatorId = elevator.Id,
@@ -67,7 +70,6 @@ public class ElevatorSimulationService : IElevatorSimulationService
             DoorStatus = elevator.DoorStatus
         };
         
-        Console.WriteLine($"Sending elevator update: Floor {updateMessage.CurrentFloor}, Status {updateMessage.Status}, Direction {updateMessage.Direction}, Door {updateMessage.DoorStatus}");
         await SendElevatorUpdateAsync(elevator.Id, updateMessage);
     }
 
@@ -78,21 +80,18 @@ public class ElevatorSimulationService : IElevatorSimulationService
             .OrderBy(c => c.CallTime)
             .ToListAsync();
 
-        Console.WriteLine($"Found {pendingCalls.Count} pending calls for elevator {elevator.Id}");
 
         foreach (var call in pendingCalls)
         {
-            Console.WriteLine($"Processing call {call.Id} for floor {call.RequestedFloor}");
+            // idle - watiting
             if (elevator.Status == ElevatorStatus.Idle)
             {
-                Console.WriteLine($"Assigning call {call.Id} to idle elevator {elevator.Id}");
                 await AssignCallToElevatorAsync(elevator, call);
             }
             else if (elevator.Status == ElevatorStatus.MovingUp || elevator.Status == ElevatorStatus.MovingDown)
             {
                 if (IsCallOnTheWay(elevator, call))
                 {
-                    Console.WriteLine($"Adding call {call.Id} to elevator {elevator.Id} on the way");
                     await AddFloorToTargetsAsync(elevator, call.RequestedFloor);
                     if (call.DestinationFloor.HasValue)
                     {
@@ -105,119 +104,134 @@ public class ElevatorSimulationService : IElevatorSimulationService
     }
 
     private async Task ProcessElevatorMovementAsync(Elevator elevator)
+{
+    // dont move if the 
+    if (elevator.DoorStatus != DoorStatus.Closed)
     {
-        // Only allow movement if doors are fully closed
-        if (elevator.DoorStatus != DoorStatus.Closed)
-        {
-            // Doors are not closed, do not move
-            return;
-        }
-        if (elevator.Status == ElevatorStatus.Idle && _targetFloors[elevator.Id].Any())
-        {
-            var nextFloor = _targetFloors[elevator.Id].First();
-            Console.WriteLine($"Elevator {elevator.Id} starting to move to floor {nextFloor}");
-            if (nextFloor > elevator.CurrentFloor)
-            {
-                elevator.Status = ElevatorStatus.MovingUp;
-                elevator.Direction = ElevatorDirection.Up;
-            }
-            else if (nextFloor < elevator.CurrentFloor)
-            {
-                elevator.Status = ElevatorStatus.MovingDown;
-                elevator.Direction = ElevatorDirection.Down;
-            }
-            await _context.SaveChangesAsync();
-        }
-        else if (elevator.Status == ElevatorStatus.MovingUp || elevator.Status == ElevatorStatus.MovingDown)
-        {
-            if (_targetFloors[elevator.Id].Contains(elevator.CurrentFloor))
-            {
-                Console.WriteLine($"Elevator {elevator.Id} arrived at floor {elevator.CurrentFloor}, opening doors and waiting for user input");
-                elevator.Status = ElevatorStatus.OpeningDoors;
-                elevator.Direction = ElevatorDirection.None;
-                _doorTimers[elevator.Id] = 0;
-                _targetFloors[elevator.Id].Remove(elevator.CurrentFloor);
-                await _context.SaveChangesAsync();
-            }
-            else
-            {
-                if (elevator.Status == ElevatorStatus.MovingUp)
-                {
-                    elevator.CurrentFloor++;
-                }
-                else
-                {
-                    elevator.CurrentFloor--;
-                }
-                Console.WriteLine($"Elevator {elevator.Id} moved to floor {elevator.CurrentFloor}");
-                await _context.SaveChangesAsync();
-            }
-        }
+        Console.WriteLine($"🛑 Elevator {elevator.Id} לא זזה כי הדלת במצב: {elevator.DoorStatus}");
+        return;
     }
 
-    private async Task ProcessDoorOperationsAsync(Elevator elevator)
+    // הגנה על חריגה מהקומות
+    int maxFloor = elevator.Building.NumberOfFloors - 1;
+    if (elevator.CurrentFloor < 0) elevator.CurrentFloor = 0;
+    if (elevator.CurrentFloor > maxFloor) elevator.CurrentFloor = maxFloor;
+
+    // אם יש יעד והמעלית ב-Idle, התחל תנועה
+    if (elevator.Status == ElevatorStatus.Idle && _targetFloors[elevator.Id].Any())
     {
-        if (elevator.Status == ElevatorStatus.OpeningDoors)
+        var nextFloor = _targetFloors[elevator.Id].First();
+        if (nextFloor > elevator.CurrentFloor)
         {
-            if (!_doorTimers.ContainsKey(elevator.Id))
-            {
-                _doorTimers[elevator.Id] = 0;
-            }
-
-            _doorTimers[elevator.Id]++;
-            elevator.DoorStatus = DoorStatus.Opening;
-
-            if (_doorTimers[elevator.Id] >= 3)
-            {
-                elevator.DoorStatus = DoorStatus.Open;
-                await _context.SaveChangesAsync();
-                // Now WAIT for user input (destination selection) before closing doors
-            }
+            elevator.Status = ElevatorStatus.MovingUp;
+            elevator.Direction = ElevatorDirection.Up;
         }
-        else if (elevator.Status == ElevatorStatus.ClosingDoors)
+        else if (nextFloor < elevator.CurrentFloor)
         {
-            _doorTimers[elevator.Id]++;
-            elevator.DoorStatus = DoorStatus.Closing;
-
-            if (_doorTimers[elevator.Id] >= 3)
-            {
-                // After doors close, determine next movement or idle
-                if (_targetFloors[elevator.Id].Any())
-                {
-                    var nextFloor = _targetFloors[elevator.Id].First();
-                    if (nextFloor > elevator.CurrentFloor)
-                    {
-                        elevator.Status = ElevatorStatus.MovingUp;
-                        elevator.Direction = ElevatorDirection.Up;
-                    }
-                    else if (nextFloor < elevator.CurrentFloor)
-                    {
-                        elevator.Status = ElevatorStatus.MovingDown;
-                        elevator.Direction = ElevatorDirection.Down;
-                    }
-                    _targetFloors[elevator.Id].Remove(nextFloor);
-                }
-                else
-                {
-                    elevator.Status = ElevatorStatus.Idle;
-                    elevator.Direction = ElevatorDirection.None;
-                }
-                elevator.DoorStatus = DoorStatus.Closed;
-                _doorTimers.Remove(elevator.Id);
-                await _context.SaveChangesAsync();
-            }
+            elevator.Status = ElevatorStatus.MovingDown;
+            elevator.Direction = ElevatorDirection.Down;
         }
-        else if (elevator.DoorStatus == DoorStatus.Open)
+        await _context.SaveChangesAsync();
+    }
+    else if (elevator.Status == ElevatorStatus.MovingUp || elevator.Status == ElevatorStatus.MovingDown)
+    {
+        if (_targetFloors[elevator.Id].Contains(elevator.CurrentFloor))
         {
-            // Doors are open and waiting for user input, do nothing
-            return;
+            elevator.Status = ElevatorStatus.OpeningDoors;
+            elevator.Direction = ElevatorDirection.None;
+            _doorTimers[elevator.Id] = 0;
+            _targetFloors[elevator.Id].Remove(elevator.CurrentFloor);
+            await _context.SaveChangesAsync();
         }
         else
         {
-            elevator.DoorStatus = DoorStatus.Closed;
+            if (elevator.Status == ElevatorStatus.MovingUp)
+                elevator.CurrentFloor++;
+            else
+                elevator.CurrentFloor--;
+
+            // הגנה על חריגה
+            if (elevator.CurrentFloor < 0) elevator.CurrentFloor = 0;
+            if (elevator.CurrentFloor > maxFloor) elevator.CurrentFloor = maxFloor;
+
             await _context.SaveChangesAsync();
         }
     }
+}
+
+   private async Task ProcessDoorOperationsAsync(Elevator elevator)
+{
+    // פתיחת דלתות
+    if (elevator.Status == ElevatorStatus.OpeningDoors)
+    {
+        if (!_doorTimers.ContainsKey(elevator.Id))
+            _doorTimers[elevator.Id] = 0;
+
+        _doorTimers[elevator.Id]++;
+        elevator.DoorStatus = DoorStatus.Opening;
+
+        if (_doorTimers[elevator.Id] >= 2) // זמן פתיחה
+        {
+            elevator.DoorStatus = DoorStatus.Open;
+            elevator.Status = ElevatorStatus.Idle; // תמיד עובר ל-Idle כשהדלתות פתוחות
+            _doorTimers[elevator.Id] = 0;
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            await _context.SaveChangesAsync();
+        }
+        return;
+    }
+
+    // המתנה ליעד מהמשתמש (הדלתות פתוחות)
+    if (elevator.DoorStatus == DoorStatus.Open)
+    {
+        // לא עושים כלום עד שמתווסף יעד חדש
+        return;
+    }
+
+    // סגירת דלתות
+    if (elevator.Status == ElevatorStatus.ClosingDoors)
+    {
+        if (!_doorTimers.ContainsKey(elevator.Id))
+            _doorTimers[elevator.Id] = 0;
+
+        _doorTimers[elevator.Id]++;
+        elevator.DoorStatus = DoorStatus.Closing;
+
+        if (_doorTimers[elevator.Id] >= 2) // זמן סגירה
+        {
+            elevator.DoorStatus = DoorStatus.Closed;
+            if (_targetFloors[elevator.Id].Any())
+            {
+                var nextFloor = _targetFloors[elevator.Id].First();
+                if (nextFloor > elevator.CurrentFloor)
+                {
+                    elevator.Status = ElevatorStatus.MovingUp;
+                    elevator.Direction = ElevatorDirection.Up;
+                }
+                else if (nextFloor < elevator.CurrentFloor)
+                {
+                    elevator.Status = ElevatorStatus.MovingDown;
+                    elevator.Direction = ElevatorDirection.Down;
+                }
+            }
+            else
+            {
+                elevator.Status = ElevatorStatus.Idle;
+                elevator.Direction = ElevatorDirection.None;
+            }
+            _doorTimers.Remove(elevator.Id);
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            await _context.SaveChangesAsync();
+        }
+        return;
+    }
+}
 
     private bool IsCallOnTheWay(Elevator elevator, ElevatorCall call)
     {
@@ -252,21 +266,22 @@ public class ElevatorSimulationService : IElevatorSimulationService
     }
 
     private async Task AddFloorToTargetsAsync(Elevator elevator, int floor)
+{
+    if (!_targetFloors[elevator.Id].Contains(floor))
     {
-        if (!_targetFloors[elevator.Id].Contains(floor))
-        {
-            _targetFloors[elevator.Id].Add(floor);
-            _targetFloors[elevator.Id].Sort();
-        }
-        // If elevator is waiting with doors open, start closing doors and resume movement
-        if (elevator.DoorStatus == DoorStatus.Open)
-        {
-            elevator.Status = ElevatorStatus.ClosingDoors;
-            elevator.DoorStatus = DoorStatus.Closing;
-            _doorTimers[elevator.Id] = 0;
-            await _context.SaveChangesAsync();
-        }
+        _targetFloors[elevator.Id].Add(floor);
+        _targetFloors[elevator.Id].Sort();
     }
+    
+    // אם הדלתות פתוחות, התחל לסגור אותן
+    if (elevator.DoorStatus == DoorStatus.Open)
+    {
+        elevator.Status = ElevatorStatus.ClosingDoors;
+        elevator.DoorStatus = DoorStatus.Closing;
+        _doorTimers[elevator.Id] = 0;
+        await _context.SaveChangesAsync();
+    }
+}
 
     private async Task MarkCallAsHandledAsync(ElevatorCall call)
     {
