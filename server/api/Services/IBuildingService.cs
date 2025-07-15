@@ -7,4 +7,5 @@ public interface IBuildingService
     Task<List<BuildingListResponse>> GetUserBuildingsAsync(int userId);
     Task<BuildingResponse> GetBuildingAsync(int buildingId, int userId);
     Task<BuildingResponse> CreateBuildingAsync(CreateBuildingRequest request, int userId);
+    Task<List<ElevatorSimulationApi.Models.Entities.Building>> GetAllBuildingsWithDapperAsync();
 } 

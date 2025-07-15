@@ -1,6 +1,6 @@
 import React from 'react';
 
-const FloorButton = ({ floor, onCallElevator, elevator, onSelectDestination, showDestinationButtons, numberOfFloors }) => {
+const FloorButton = ({ floor, onCallElevator, elevator, onSelectDestination, showDestinationButtons, numberOfFloors, isTopFloor, isBottomFloor }) => {
   // floor is 1-based for display, but backend expects 0-based
   const isCurrentFloor = (elevator.currentFloor + 1) === floor;
   const isElevatorAtFloor = (elevator.currentFloor + 1) === floor && elevator.doorStatus === 'Open';
@@ -23,22 +23,26 @@ const FloorButton = ({ floor, onCallElevator, elevator, onSelectDestination, sho
       <div className="floor-buttons">
         {!showDestinationButtons ? (
           <>
-            <button
-              className="floor-btn up"
-              onClick={handleUpCall}
-              disabled={isCurrentFloor}
-              title="Call elevator up"
-            >
-              ▲
-            </button>
-            <button
-              className="floor-btn down"
-              onClick={handleDownCall}
-              disabled={isCurrentFloor}
-              title="Call elevator down"
-            >
-              ▼
-            </button>
+            {!isTopFloor && (
+              <button
+                className="floor-btn up"
+                onClick={handleUpCall}
+                disabled={isCurrentFloor}
+                title="Call elevator up"
+              >
+                ▲
+              </button>
+            )}
+            {!isBottomFloor && (
+              <button
+                className="floor-btn down"
+                onClick={handleDownCall}
+                disabled={isCurrentFloor}
+                title="Call elevator down"
+              >
+                ▼
+              </button>
+            )}
           </>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>

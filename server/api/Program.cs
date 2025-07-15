@@ -30,7 +30,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBuildingService, BuildingService>();
 builder.Services.AddScoped<IElevatorCallService, ElevatorCallService>();
-builder.Services.AddScoped<IElevatorSimulationService, ElevatorSimulationService>();
+builder.Services.AddSingleton<IElevatorSimulationService, ElevatorSimulationService>();
 builder.Services.AddHostedService<ElevatorBackgroundService>();
 
 // Configure SignalR

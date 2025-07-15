@@ -63,7 +63,7 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task<bool> ValidateTokenAsync(string token)
+    public Task<bool> ValidateTokenAsync(string token)
     {
         try
         {
@@ -81,15 +81,15 @@ public class AuthService : IAuthService
                 ClockSkew = TimeSpan.Zero
             }, out SecurityToken validatedToken);
 
-            return true;
+            return Task.FromResult(true);
         }
         catch
         {
-            return false;
+            return Task.FromResult(false);
         }
     }
 
-    public async Task<int> GetUserIdFromTokenAsync(string token)
+    public Task<int> GetUserIdFromTokenAsync(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var jwtToken = tokenHandler.ReadJwtToken(token);
@@ -100,7 +100,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Invalid token");
         }
 
-        return userId;
+        return Task.FromResult(userId);
     }
 
     private string GenerateJwtToken(User user)

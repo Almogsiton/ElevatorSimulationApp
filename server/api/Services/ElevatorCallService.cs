@@ -35,6 +35,27 @@ public class ElevatorCallService : IElevatorCallService
             throw new InvalidOperationException("Invalid destination floor number");
         }
 
+        // Prevent duplicate active calls for the same floor in the same building
+        var existingCall = await _context.ElevatorCalls.FirstOrDefaultAsync(c =>
+            c.BuildingId == request.BuildingId &&
+            c.RequestedFloor == request.RequestedFloor &&
+            !c.IsHandled &&
+            c.DestinationFloor == null // Only for floor calls, not elevator internal requests
+        );
+        if (existingCall != null)
+        {
+            Console.WriteLine($"Duplicate call detected for building {request.BuildingId}, floor {request.RequestedFloor}. Returning existing call.");
+            return new ElevatorCallResponse
+            {
+                Id = existingCall.Id,
+                BuildingId = existingCall.BuildingId,
+                RequestedFloor = existingCall.RequestedFloor,
+                DestinationFloor = existingCall.DestinationFloor,
+                CallTime = existingCall.CallTime,
+                IsHandled = existingCall.IsHandled
+            };
+        }
+
         var call = new ElevatorCall
         {
             BuildingId = request.BuildingId,

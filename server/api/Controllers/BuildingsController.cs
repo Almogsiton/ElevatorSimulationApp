@@ -1,6 +1,7 @@
 using ElevatorSimulationApi.Models.DTOs;
 using ElevatorSimulationApi.Services;
 using Microsoft.AspNetCore.Mvc;
+using ElevatorSimulationApi.Models.Entities;
 
 namespace ElevatorSimulationApi.Controllers;
 
@@ -59,6 +60,13 @@ public class BuildingsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpGet("dapper/all")]
+    public async Task<ActionResult<IEnumerable<Building>>> GetAllBuildingsDapper()
+    {
+        var buildings = await _buildingService.GetAllBuildingsWithDapperAsync();
+        return Ok(buildings);
     }
 
 

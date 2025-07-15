@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "server", "server", "{DAD03CFC-D5FA-AC94-41C7-9ABAB326F09E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ElevatorSimulationApi", "server\api\ElevatorSimulationApi.csproj", "{71FEA240-BE08-C129-A1B2-3C6F0931D34C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{71FEA240-BE08-C129-A1B2-3C6F0931D34C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71FEA240-BE08-C129-A1B2-3C6F0931D34C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71FEA240-BE08-C129-A1B2-3C6F0931D34C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71FEA240-BE08-C129-A1B2-3C6F0931D34C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{71FEA240-BE08-C129-A1B2-3C6F0931D34C} = {DAD03CFC-D5FA-AC94-41C7-9ABAB326F09E}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A3C5434F-394C-4DAC-AC74-5D14AB5D6D05}
+	EndGlobalSection
+EndGlobal

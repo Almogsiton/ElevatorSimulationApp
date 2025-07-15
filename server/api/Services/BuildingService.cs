@@ -3,6 +3,9 @@ using ElevatorSimulationApi.Models.DTOs;
 using ElevatorSimulationApi.Models.Entities;
 using ElevatorSimulationApi.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using Dapper;
+using System.Data;
+using Microsoft.Data.SqlClient;
 
 namespace ElevatorSimulationApi.Services;
 
@@ -99,5 +102,15 @@ public class BuildingService : IBuildingService
                 DoorStatus = elevator.DoorStatus
             }
         };
+    }
+
+    public async Task<List<Building>> GetAllBuildingsWithDapperAsync()
+    {
+        using (var connection = new SqlConnection(_context.Database.GetDbConnection().ConnectionString))
+        {
+            string sql = "SELECT * FROM Buildings";
+            var buildings = await connection.QueryAsync<Building>(sql);
+            return buildings.ToList();
+        }
     }
 } 
