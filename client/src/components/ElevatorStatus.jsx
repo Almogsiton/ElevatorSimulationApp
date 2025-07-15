@@ -78,7 +78,7 @@ const ElevatorStatus = ({ elevator }) => {
       </div>
       <div style={{ marginBottom: '10px' }}>
         <span className="direction-indicator">{getDirectionIcon(direction)}</span>
-        <strong>Floor {elevator.currentFloor + 1}</strong>
+        <strong>Floor {elevator.currentFloor}</strong>
       </div>
       <div>
         <strong>{getDoorStatusText(doorStatus)}</strong>

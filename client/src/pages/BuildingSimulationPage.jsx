@@ -153,6 +153,13 @@ const BuildingSimulationPage = () => {
     return elevatorRequests.some(c => c.destinationFloor + 1 === floor);
   };
 
+  // Helper to calculate elevator car position
+  const getFloorTop = (floor) => {
+    const totalFloors = building.numberOfFloors;
+    const shaftHeight = 60 * totalFloors; // 60px per floor
+    return (totalFloors - 1 - floor) * 60 + 8; // 8px padding
+  };
+
   if (loading) {
     return (
       <div className="container">
@@ -188,113 +195,17 @@ const BuildingSimulationPage = () => {
         </div>
       )}
       <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2>{building.name}</h2>
-          <button className="btn btn-secondary" onClick={() => navigate('/buildings')}>
-            Back to Buildings
-          </button>
-        </div>
-        <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start' }}>
-          {/* עמודת הבקשות */}
-          <div style={{ minWidth: 220 }}>
-            <div className="card" style={{ marginBottom: 16 }}>
-              <h4>קריאות מהקומות</h4>
-              <ul style={{ paddingInlineStart: 18 }}>
-                {floorCalls.length === 0 && <li style={{ color: '#888' }}>אין קריאות פעילות</li>}
-                {floorCalls.map(call => (
-                  <li key={call.id}>
-                    קומה {call.requestedFloor + 1} ({new Date(call.callTime).toLocaleTimeString()})
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="card">
-              <h4>יעדים מתוך המעלית</h4>
-              <ul style={{ paddingInlineStart: 18 }}>
-                {elevatorRequests.length === 0 && <li style={{ color: '#888' }}>אין יעדים פעילים</li>}
-                {elevatorRequests.map(call => (
-                  <li key={call.id}>
-                    {`מקור: קומה ${call.requestedFloor + 1} → יעד: קומה ${call.destinationFloor + 1} (${new Date(call.callTime).toLocaleTimeString()})`}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          {/* עמודת הבניין והכפתורים */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '40px' }}>
-            <div>
-              <ElevatorStatus elevator={elevator} />
-              <div className="elevator-shaft">
-                <div
-                  className="elevator"
-                  style={{ bottom: getElevatorPosition() }}
-                >
-                  {elevator.currentFloor + 1}
-                </div>
-              </div>
-            </div>
-            <div className="floors-container">
-              {Array.from({ length: building.numberOfFloors }, (_, i) => building.numberOfFloors - i).map((floor) => {
-                const isCurrent = elevator.currentFloor + 1 === floor;
-                const hasCall = floorCalls.some(c => c.requestedFloor + 1 === floor);
-                const hasDest = elevatorRequests.some(c => c.destinationFloor + 1 === floor);
-                return (
-                  <div key={floor} style={{
-                    border: isCurrent ? '3px solid #28a745' : hasCall ? '3px solid #ffc107' : hasDest ? '3px solid #007bff' : '1px solid #eee',
-                    background: isCurrent ? '#e6ffe6' : hasCall ? '#fffbe6' : hasDest ? '#e6f0ff' : 'white',
-                    borderRadius: 10,
-                    boxShadow: isCurrent ? '0 0 8px #28a74555' : hasCall ? '0 0 8px #ffc10755' : hasDest ? '0 0 8px #007bff55' : '0 1px 2px #0001',
-                    marginBottom: 6,
-                    transition: 'all 0.3s',
-                  }}>
-                    <FloorButton
-                      floor={floor}
-                      elevator={elevator}
-                      numberOfFloors={building.numberOfFloors}
-                      onCallElevator={handleCallElevator}
-                      onSelectDestination={handleSelectDestination}
-                      showDestinationButtons={showDestinationButtons && (elevator.currentFloor + 1) === floor}
-                      isTopFloor={floor === building.numberOfFloors}
-                      isBottomFloor={floor === 1}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            {/* כפתורי הקומות של המעלית (בחירת יעד) */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 24 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>יעדים במעלית</div>
-              {Array.from({ length: building.numberOfFloors }, (_, i) => i + 1).map((floor) => (
-                <button
-                  key={floor}
-                  className="floor-btn"
-                  style={{
-                    width: 40,
-                    height: 40,
-                    marginBottom: 6,
-                    background: isDestinationActive(floor) ? '#007bff' : '#667eea',
-                    color: 'white',
-                    fontWeight: isDestinationActive(floor) ? 700 : 500,
-                    border: isDestinationActive(floor) ? '2px solid #0056b3' : 'none',
-                    fontSize: 18,
-                    opacity: elevator.doorStatus === 'Open' ? 1 : 0.5,
-                    cursor: elevator.doorStatus === 'Open' && !isDestinationActive(floor) && (elevator.currentFloor + 1 !== floor) ? 'pointer' : 'not-allowed',
-                    pointerEvents: elevator.doorStatus === 'Open' && !isDestinationActive(floor) && (elevator.currentFloor + 1 !== floor) ? 'auto' : 'none',
-                  }}
-                  disabled={elevator.doorStatus !== 'Open' || isDestinationActive(floor) || (elevator.currentFloor + 1 === floor)}
-                  onClick={() => handleSelectDestination(floor - 1)}
-                  title={isDestinationActive(floor) ? 'יעד כבר קיים' : (elevator.currentFloor + 1 === floor ? 'אתה כבר בקומה הזו' : 'בחר יעד')}
-                >
-                  {floor}
-                </button>
-              ))}
-            </div>
-          </div>
+        <button className="btn btn-secondary" style={{ float: 'right', marginBottom: 12 }} onClick={() => navigate('/buildings')}>
+          Back to Buildings
+        </button>
+        <h2>{building.name}</h2>
+        <div className="elevator-status-bar">
+          <ElevatorStatus elevator={elevator} />
         </div>
         {activeCall && (
           <div className="card" style={{ marginTop: '20px' }}>
             <h3>Active Call</h3>
-            <p>Calling elevator to floor {activeCall.requestedFloor + 1}</p>
+            <p>Calling elevator to floor {activeCall.requestedFloor}</p>
             {elevator.doorStatus === 'Open' && elevator.currentFloor === activeCall.requestedFloor && (
               <p style={{ color: '#28a745', fontWeight: 'bold' }}>
                 Elevator arrived! Select your destination floor.
@@ -302,6 +213,71 @@ const BuildingSimulationPage = () => {
             )}
           </div>
         )}
+        <div className="building-shaft-container">
+          <div className="building-shaft" style={{ height: 60 * building.numberOfFloors }}>
+            {Array.from({ length: building.numberOfFloors }, (_, i) => building.numberOfFloors - 1 - i).map((floor) => (
+              <div
+                key={floor}
+                className={`building-floor-row${elevator.currentFloor === floor ? ' current-floor-row' : ''}`}
+              >
+                <div className="floor-buttons-row" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  {/* Floor number button (simulates elevator panel) */}
+                  <button
+                    className="floor-btn floor-number-btn"
+                    onClick={() => handleSelectDestination(floor)}
+                    disabled={elevator.currentFloor === floor}
+                    title={elevator.currentFloor === floor ? 'You are here' : 'Go to floor ' + floor}
+                  >
+                    {floor}
+                  </button>
+                  {/* Up button */}
+                  {floor !== building.numberOfFloors - 1 && (
+                    <button
+                      className="floor-btn up"
+                      onClick={() => handleCallElevator(floor, 'up')}
+                      disabled={elevator.currentFloor === floor}
+                      title="Call elevator up"
+                    >▲</button>
+                  )}
+                  {/* Down button */}
+                  {floor !== 0 && (
+                    <button
+                      className="floor-btn down"
+                      onClick={() => handleCallElevator(floor, 'down')}
+                      disabled={elevator.currentFloor === floor}
+                      title="Call elevator down"
+                    >▼</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Requests lists */}
+        <div className="requests-lists">
+          <div className="card">
+            <h4>קריאות מהקומות</h4>
+            <ul style={{ paddingInlineStart: 18 }}>
+              {floorCalls.length === 0 && <li style={{ color: '#888' }}>אין קריאות פעילות</li>}
+              {floorCalls.map(call => (
+                <li key={call.id}>
+                  קומה {call.requestedFloor} ({new Date(call.callTime).toLocaleTimeString()})
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="card">
+            <h4>יעדים מתוך המעלית</h4>
+            <ul style={{ paddingInlineStart: 18 }}>
+              {elevatorRequests.length === 0 && <li style={{ color: '#888' }}>אין יעדים פעילים</li>}
+              {elevatorRequests.map(call => (
+                <li key={call.id}>
+                  {`מקור: קומה ${call.requestedFloor} → יעד: קומה ${call.destinationFloor} (${new Date(call.callTime).toLocaleTimeString()})`}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );

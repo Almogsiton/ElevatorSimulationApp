@@ -2,19 +2,20 @@ import React from 'react';
 
 const FloorButton = ({ floor, onCallElevator, elevator, onSelectDestination, showDestinationButtons, numberOfFloors, isTopFloor, isBottomFloor }) => {
   // floor is 1-based for display, but backend expects 0-based
-  const isCurrentFloor = (elevator.currentFloor + 1) === floor;
-  const isElevatorAtFloor = (elevator.currentFloor + 1) === floor && elevator.doorStatus === 'Open';
+  // Change to 0-based for display and logic
+  const isCurrentFloor = elevator.currentFloor === floor;
+  const isElevatorAtFloor = elevator.currentFloor === floor && elevator.doorStatus === 'Open';
 
   const handleUpCall = () => {
-    onCallElevator(floor - 1, 'up'); // send zero-based
+    onCallElevator(floor, 'up'); // already zero-based
   };
 
   const handleDownCall = () => {
-    onCallElevator(floor - 1, 'down'); // send zero-based
+    onCallElevator(floor, 'down'); // already zero-based
   };
 
   const handleDestinationSelect = (destinationFloor) => {
-    onSelectDestination(destinationFloor - 1); // send zero-based
+    onSelectDestination(destinationFloor); // already zero-based
   };
 
   return (
@@ -46,7 +47,7 @@ const FloorButton = ({ floor, onCallElevator, elevator, onSelectDestination, sho
           </>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            {Array.from({ length: numberOfFloors }, (_, i) => i + 1).map((destFloor) => (
+            {Array.from({ length: numberOfFloors }, (_, i) => i).map((destFloor) => (
               <button
                 key={destFloor}
                 className="floor-btn"
