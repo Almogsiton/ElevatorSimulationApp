@@ -22,6 +22,7 @@ public class ElevatorSimulationService : IElevatorSimulationService
         ILogger<ElevatorSimulationService> logger)
     {
         _serviceProvider = serviceProvider;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -205,7 +206,7 @@ public class ElevatorSimulationService : IElevatorSimulationService
             if (_targetFloors[elevator.Id].Contains(elevator.CurrentFloor))
             {
                 elevator.Status = ElevatorStatus.OpeningDoors;
-                elevator.Direction = ElevatorDirection.None;
+                // אל תשנה את הכיוון כאן!
                 _doorTimers[elevator.Id] = 0;
                 _targetFloors[elevator.Id].Remove(elevator.CurrentFloor);
 
@@ -271,6 +272,14 @@ public class ElevatorSimulationService : IElevatorSimulationService
                 _logger.LogInformation($"[DOOR] Saving door open state for elevator {elevator.Id}");
                 await context.SaveChangesAsync();
                 _logger.LogInformation($"[DOOR] Door open state saved for elevator {elevator.Id}");
+
+                // הוסף כאן איפוס כיוון אם אין יעדים
+                if (!_targetFloors[elevator.Id].Any())
+                {
+                    elevator.Direction = ElevatorDirection.None;
+                    await context.SaveChangesAsync();
+                    _logger.LogInformation($"[DOOR] No more targets. Direction set to None for elevator {elevator.Id}");
+                }
             }
             else
             {
@@ -418,9 +427,24 @@ public class ElevatorSimulationService : IElevatorSimulationService
 
     public async Task SendElevatorUpdateAsync(int elevatorId, ElevatorUpdateMessage message)
     {
-        _logger.LogInformation("24.\ud83d\udce1 Sending SignalR update to group 'elevator_{ElevatorId}'", elevatorId);
+        if (message == null)
+        {
+            _logger.LogError("ElevatorUpdateMessage is null for elevator {ElevatorId}", elevatorId);
+            return;
+        }
+        // הדפס את כל השדות של message ללוג
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(message);
+            _logger.LogInformation("ElevatorUpdateMessage for elevator {ElevatorId}: {MessageJson}", elevatorId, json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to serialize ElevatorUpdateMessage for elevator {ElevatorId}", elevatorId);
+        }
+        _logger.LogInformation("24.📡 Sending SignalR update to group 'elevator_{ElevatorId}'", elevatorId);
         await _hubContext.Clients.Group($"elevator_{elevatorId}")
             .SendAsync("ReceiveElevatorUpdate", message);
-        _logger.LogInformation("24.\u2705 SignalR update sent to group 'elevator_{ElevatorId}'", elevatorId);
+        _logger.LogInformation("24.✅ SignalR update sent to group 'elevator_{ElevatorId}'", elevatorId);
     }
 }
