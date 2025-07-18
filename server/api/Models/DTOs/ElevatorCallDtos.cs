@@ -1,16 +1,17 @@
 using System.ComponentModel.DataAnnotations;
-
 namespace ElevatorSimulationApi.Models.DTOs;
+
+// todo config 
 
 public class CreateElevatorCallRequest
 {
     [Required]
     public int BuildingId { get; set; }
-    
+
     [Required]
     [Range(0, 100)]
     public int RequestedFloor { get; set; }
-    
+
     [Range(0, 100)]
     public int? DestinationFloor { get; set; }
 }

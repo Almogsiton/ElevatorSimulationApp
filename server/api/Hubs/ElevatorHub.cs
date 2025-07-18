@@ -1,8 +1,11 @@
 using ElevatorSimulationApi.Models.DTOs;
 using Microsoft.AspNetCore.SignalR;
-
 namespace ElevatorSimulationApi.Hubs;
 
+
+/// <summary>
+///  todo remove uneeded funcs
+/// </summary>
 public class ElevatorHub : Hub
 {
     public async Task JoinElevatorGroup(int elevatorId)

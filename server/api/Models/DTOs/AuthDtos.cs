@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace ElevatorSimulationApi.Models.DTOs;
-
+// TODO take min len from config
 public class RegisterRequest
 {
     [Required]

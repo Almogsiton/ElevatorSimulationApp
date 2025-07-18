@@ -19,6 +19,11 @@ const BuildingSimulationPage = () => {
   const [showDestinationButtons, setShowDestinationButtons] = useState(false);
   const [calls, setCalls] = useState([]); // כל הבקשות הפעילות
   const [toast, setToast] = useState(null); // הודעת פופ-אפ
+  const [pendingCalls, setPendingCalls] = useState(() => {
+    // Load from localStorage if exists
+    const saved = localStorage.getItem('pendingCalls_' + buildingId);
+    return saved ? JSON.parse(saved) : [];
+  });
   const connectionRef = useRef(null);
 
   useEffect(() => {
@@ -115,6 +120,12 @@ const BuildingSimulationPage = () => {
   };
 
   const handleCallElevator = async (floor, direction) => {
+    if (!isCallOnTheWay(floor, direction)) {
+      // לא "על הדרך" – הוסף ל-pendingCalls
+      setPendingCalls(prev => [...prev, { floor, direction, time: Date.now() }]);
+      showToast('הקריאה נשמרה לקריאות ממתינות ותישלח כאשר המעלית תשנה כיוון');
+      return;
+    }
     try {
       const call = await elevatorCallService.createCall(numericBuildingId, floor);
       setActiveCall(call);
@@ -148,9 +159,37 @@ const BuildingSimulationPage = () => {
   const floorCalls = calls.filter(c => c.destinationFloor === null);
   const elevatorRequests = calls.filter(c => c.destinationFloor !== null);
 
+  // Split floorCalls into up and down calls
+  const upCalls = floorCalls.filter(c => c.direction === 'up');
+  const downCalls = floorCalls.filter(c => c.direction === 'down');
+
   // הוסף פונקציה לבדיקת יעד פעיל
   const isDestinationActive = (floor) => {
     return elevatorRequests.some(c => c.destinationFloor + 1 === floor);
+  };
+
+  // Helper: האם הקריאה "על הדרך"?
+  const isCallOnTheWay = (floor, direction) => {
+    if (!elevator) return true; // אם אין מידע – נאפשר
+    if (elevator.status === 'Idle' || elevator.direction === 'None' || elevator.direction === 2) return true;
+    if (elevator.direction === 'Up' || elevator.direction === 0) {
+      if (direction === 'up' && floor > elevator.currentFloor) {
+        return true;
+      } else {
+        console.log(`לא על הדרך: קומה ${floor}, כיוון קריאה ${direction}, מצב מעלית עולה, קומה נוכחית ${elevator.currentFloor}, elevator.direction=${JSON.stringify(elevator.direction)}`);
+        return false;
+      }
+    }
+    if (elevator.direction === 'Down' || elevator.direction === 1) {
+      if (direction === 'down' && floor < elevator.currentFloor) {
+        return true;
+      } else {
+        console.log(`לא על הדרך: קומה ${floor}, כיוון קריאה ${direction}, מצב מעלית יורדת, קומה נוכחית ${elevator.currentFloor}, elevator.direction=${JSON.stringify(elevator.direction)}`);
+        return false;
+      }
+    }
+    console.log(`לא על הדרך: קומה ${floor}, כיוון קריאה ${direction}, מצב מעלית לא מזוהה, קומה נוכחית ${elevator.currentFloor}, elevator.direction=${JSON.stringify(elevator.direction)}`);
+    return false;
   };
 
   // Helper to calculate elevator car position
@@ -159,6 +198,55 @@ const BuildingSimulationPage = () => {
     const shaftHeight = 60 * totalFloors; // 60px per floor
     return (totalFloors - 1 - floor) * 60 + 8; // 8px padding
   };
+
+  // שמירה ל-localStorage בכל שינוי
+  useEffect(() => {
+    localStorage.setItem('pendingCalls_' + buildingId, JSON.stringify(pendingCalls));
+  }, [pendingCalls, buildingId]);
+
+  // שליחת קריאות ממתינות רלוונטיות כאשר המעלית פנויה ואין קריאות פעילות
+  useEffect(() => {
+    if (!elevator || pendingCalls.length === 0) return;
+    // אם המעלית פנויה (Idle/None) ואין קריאות פעילות כלל
+    const isElevatorFree = (elevator.status === 'Idle' || elevator.direction === 'None' || elevator.direction === 2);
+    if (isElevatorFree && floorCalls.length === 0 && elevatorRequests.length === 0) {
+      const callsToSend = [];
+      const callsToKeep = [];
+      pendingCalls.forEach(call => {
+        if (isCallOnTheWay(call.floor, call.direction)) {
+          callsToSend.push(call);
+        } else {
+          callsToKeep.push(call);
+        }
+      });
+      if (callsToSend.length > 0) {
+        callsToSend.forEach(async (call) => {
+          await elevatorCallService.createCall(numericBuildingId, call.floor);
+        });
+        setPendingCalls(callsToKeep);
+        showToast('קריאות ממתינות רלוונטיות נשלחו למעלית');
+        loadCalls();
+      }
+    }
+    // eslint-disable-next-line
+  }, [elevator?.status, elevator?.direction, floorCalls, elevatorRequests, pendingCalls]);
+
+  // שליחת קריאות ממתינות בעת שינוי כיוון
+  const prevDirectionRef = useRef();
+  useEffect(() => {
+    if (!elevator) return;
+    if (prevDirectionRef.current && elevator.direction !== prevDirectionRef.current && pendingCalls.length > 0) {
+      // כיוון השתנה – שלח את כל הקריאות הממתינות
+      pendingCalls.forEach(async (call) => {
+        await elevatorCallService.createCall(numericBuildingId, call.floor);
+      });
+      setPendingCalls([]);
+      showToast('כל הקריאות הממתינות נשלחו למעלית');
+      loadCalls();
+    }
+    prevDirectionRef.current = elevator.direction;
+    // eslint-disable-next-line
+  }, [elevator?.direction]);
 
   if (loading) {
     return (
@@ -254,9 +342,9 @@ const BuildingSimulationPage = () => {
           </div>
         </div>
         {/* Requests lists */}
-        <div className="requests-lists">
-          <div className="card">
-            <h4>קריאות מהקומות</h4>
+        <div className="requests-lists" style={{ display: 'flex', gap: '24px', marginTop: '32px', justifyContent: 'center' }}>
+          <div className="card floor-calls-table">
+            <h4>קריאות לקומה</h4>
             <ul style={{ paddingInlineStart: 18 }}>
               {floorCalls.length === 0 && <li style={{ color: '#888' }}>אין קריאות פעילות</li>}
               {floorCalls.map(call => (
@@ -266,13 +354,24 @@ const BuildingSimulationPage = () => {
               ))}
             </ul>
           </div>
-          <div className="card">
+          <div className="card elevator-requests-table">
             <h4>יעדים מתוך המעלית</h4>
             <ul style={{ paddingInlineStart: 18 }}>
               {elevatorRequests.length === 0 && <li style={{ color: '#888' }}>אין יעדים פעילים</li>}
               {elevatorRequests.map(call => (
                 <li key={call.id}>
                   {`מקור: קומה ${call.requestedFloor} → יעד: קומה ${call.destinationFloor} (${new Date(call.callTime).toLocaleTimeString()})`}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="card pending-calls-table">
+            <h4>קריאות ממתינות</h4>
+            <ul style={{ paddingInlineStart: 18 }}>
+              {pendingCalls.length === 0 && <li style={{ color: '#888' }}>אין קריאות ממתינות</li>}
+              {pendingCalls.map((call, idx) => (
+                <li key={idx}>
+                  קומה {call.floor} ({call.direction === 'up' ? '▲' : '▼'}) {new Date(call.time).toLocaleTimeString()}
                 </li>
               ))}
             </ul>

@@ -1,12 +1,12 @@
 using System.ComponentModel.DataAnnotations;
-
 namespace ElevatorSimulationApi.Models.DTOs;
 
+// TODO -> take range from config 
 public class CreateBuildingRequest
 {
     [Required]
     public string Name { get; set; } = string.Empty;
-    
+
     [Required]
     [Range(1, 100)]
     public int NumberOfFloors { get; set; }

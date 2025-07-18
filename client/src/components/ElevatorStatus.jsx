@@ -10,9 +10,9 @@ const statusMap = {
 };
 
 const directionMap = {
-  0: 'None',
-  1: 'Up',
-  2: 'Down',
+  0: 'Up',
+  1: 'Down',
+  2: 'None',
 };
 
 const doorStatusMap = {
@@ -22,66 +22,38 @@ const doorStatusMap = {
   3: 'Closing',
 };
 
+// פונקציות עזר להמרת ערכים למחרוזות קריאות
+const getDirectionText = (direction) => {
+  if (direction === 'Up' || direction === 0) return 'Up';
+  if (direction === 'Down' || direction === 1) return 'Down';
+  if (direction === 'None' || direction === 2) return 'None';
+  return String(direction);
+};
+
+const getDoorStatusText = (doorStatus) => {
+  if (doorStatus === 'Open' || doorStatus === 0) return 'Open';
+  if (doorStatus === 'Closed' || doorStatus === 1) return 'Closed';
+  if (doorStatus === 'Opening' || doorStatus === 2) return 'Opening';
+  if (doorStatus === 'Closing' || doorStatus === 3) return 'Closing';
+  return String(doorStatus);
+};
+
 const ElevatorStatus = ({ elevator }) => {
-  // Map numeric values to string keys if needed
-  const status = typeof elevator.status === 'number' ? statusMap[elevator.status] : elevator.status;
-  const direction = typeof elevator.direction === 'number' ? directionMap[elevator.direction] : elevator.direction;
-  const doorStatus = typeof elevator.doorStatus === 'number' ? doorStatusMap[elevator.doorStatus] : elevator.doorStatus;
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'Idle': return 'status-idle';
-      case 'MovingUp':
-      case 'MovingDown': return 'status-moving';
-      case 'OpeningDoors':
-      case 'ClosingDoors': return 'status-opening';
-      default: return 'status-idle';
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'Idle': return 'Idle';
-      case 'MovingUp': return 'Moving Up';
-      case 'MovingDown': return 'Moving Down';
-      case 'OpeningDoors': return 'Opening Doors';
-      case 'ClosingDoors': return 'Closing Doors';
-      default: return 'Unknown';
-    }
-  };
-
-  const getDirectionIcon = (direction) => {
-    switch (direction) {
-      case 'Up': return '↑';
-      case 'Down': return '↓';
-      case 'None': return '●';
-      default: return '●';
-    }
-  };
-
-  const getDoorStatusText = (doorStatus) => {
-    switch (doorStatus) {
-      case 'Open': return 'Doors Open';
-      case 'Closed': return 'Doors Closed';
-      case 'Opening': return 'Doors Opening';
-      case 'Closing': return 'Doors Closing';
-      default: return 'Unknown';
-    }
-  };
-
   return (
     <div className="elevator-status">
       <h3>Elevator Status</h3>
       <div style={{ marginBottom: '10px' }}>
-        <span className={`status-indicator ${getStatusClass(status)}`}></span>
-        <strong>{getStatusText(status)}</strong>
+        <span className={`status-indicator status-${String(elevator.status).toLowerCase()}`}></span>
+        <strong>Status: {elevator.status}</strong>
       </div>
       <div style={{ marginBottom: '10px' }}>
-        <span className="direction-indicator">{getDirectionIcon(direction)}</span>
-        <strong>Floor {elevator.currentFloor}</strong>
+        <strong>Floor: {elevator.currentFloor}</strong>
+      </div>
+      <div style={{ marginBottom: '10px' }}>
+        <strong>Direction: {getDirectionText(elevator.direction)}</strong>
       </div>
       <div>
-        <strong>{getDoorStatusText(doorStatus)}</strong>
+        <strong>Doors: {getDoorStatusText(elevator.doorStatus)}</strong>
       </div>
     </div>
   );

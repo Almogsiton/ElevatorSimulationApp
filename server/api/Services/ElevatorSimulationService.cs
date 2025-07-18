@@ -22,7 +22,6 @@ public class ElevatorSimulationService : IElevatorSimulationService
         ILogger<ElevatorSimulationService> logger)
     {
         _serviceProvider = serviceProvider;
-        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -115,30 +114,54 @@ public class ElevatorSimulationService : IElevatorSimulationService
             .ToListAsync();
         _logger.LogInformation("7.✅ Done: Loaded {Count} pending calls for elevator {ElevatorId}", pendingCalls.Count, elevator.Id);
 
+        if (pendingCalls.Count == 0)
+            return;
+
+        // If idle, determine direction by first call
+        if (elevator.Status == ElevatorStatus.Idle)
+        {
+            var firstCall = pendingCalls.First();
+            if (firstCall.RequestedFloor > elevator.CurrentFloor)
+            {
+                elevator.Status = ElevatorStatus.MovingUp;
+                elevator.Direction = ElevatorDirection.Up;
+            }
+            else if (firstCall.RequestedFloor < elevator.CurrentFloor)
+            {
+                elevator.Status = ElevatorStatus.MovingDown;
+                elevator.Direction = ElevatorDirection.Down;
+            }
+            else // Same floor
+            {
+                // Prefer Up if not top floor, else Down
+                if (firstCall.RequestedFloor < elevator.Building.NumberOfFloors - 1)
+                {
+                    elevator.Status = ElevatorStatus.MovingUp;
+                    elevator.Direction = ElevatorDirection.Up;
+                }
+                else
+                {
+                    elevator.Status = ElevatorStatus.MovingDown;
+                    elevator.Direction = ElevatorDirection.Down;
+                }
+            }
+            await context.SaveChangesAsync();
+        }
+
+        // Only handle calls matching direction
         foreach (var call in pendingCalls)
         {
-            // idle - watiting
-            if (elevator.Status == ElevatorStatus.Idle)
+            if (elevator.Status == ElevatorStatus.MovingUp && call.RequestedFloor > elevator.CurrentFloor)
             {
-                _logger.LogInformation("8.🟢 Assigning idle elevator {ElevatorId} to call {CallId}", elevator.Id, call.Id);
-                await AssignCallToElevatorAsync(context, elevator, call);
-                _logger.LogInformation("8.✅ Call {CallId} assigned", call.Id);
+                await AddFloorToTargetsAsync(context, elevator, call.RequestedFloor);
+                if (call.DestinationFloor.HasValue)
+                    await AddFloorToTargetsAsync(context, elevator, call.DestinationFloor.Value);
             }
-            else if (elevator.Status == ElevatorStatus.MovingUp || elevator.Status == ElevatorStatus.MovingDown)
+            else if (elevator.Status == ElevatorStatus.MovingDown && call.RequestedFloor < elevator.CurrentFloor)
             {
-                if (IsCallOnTheWay(elevator, call))
-                {
-                    _logger.LogInformation("9.➡️ Elevator {ElevatorId} is on the way to call {CallId}", elevator.Id, call.Id);
-                    await AddFloorToTargetsAsync(context, elevator, call.RequestedFloor);
-                    _logger.LogInformation("9.📍 Requested floor {Floor} added to targets", call.RequestedFloor);
-
-                    if (call.DestinationFloor.HasValue)
-                    {
-                        _logger.LogInformation("10.➡️ Adding destination floor {Floor} to targets for elevator {ElevatorId}", call.DestinationFloor.Value, elevator.Id);
-                        await AddFloorToTargetsAsync(context, elevator, call.DestinationFloor.Value);
-                        _logger.LogInformation("10.🎯 Destination floor {Floor} added to targets", call.DestinationFloor.Value);
-                    }
-                }
+                await AddFloorToTargetsAsync(context, elevator, call.RequestedFloor);
+                if (call.DestinationFloor.HasValue)
+                    await AddFloorToTargetsAsync(context, elevator, call.DestinationFloor.Value);
             }
         }
     }

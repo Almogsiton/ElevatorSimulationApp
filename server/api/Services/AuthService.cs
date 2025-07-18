@@ -7,9 +7,9 @@ using ElevatorSimulationApi.Models.DTOs;
 using ElevatorSimulationApi.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-
 namespace ElevatorSimulationApi.Services;
 
+// todo remove or use token 
 public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
@@ -69,7 +69,7 @@ public class AuthService : IAuthService
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key not configured"));
-            
+
             tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
@@ -94,7 +94,7 @@ public class AuthService : IAuthService
         var tokenHandler = new JwtSecurityTokenHandler();
         var jwtToken = tokenHandler.ReadJwtToken(token);
         var userIdClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-        
+
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
         {
             throw new InvalidOperationException("Invalid token");
@@ -107,7 +107,7 @@ public class AuthService : IAuthService
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key not configured"));
-        
+
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]
