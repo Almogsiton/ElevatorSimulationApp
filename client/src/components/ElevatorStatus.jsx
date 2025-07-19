@@ -3,10 +3,10 @@ import React from 'react';
 // Enum mappings for backend numeric values
 const statusMap = {
   0: 'Idle',
-  1: 'MovingUp',
-  2: 'MovingDown',
-  3: 'OpeningDoors',
-  4: 'ClosingDoors',
+  1: 'Moving Up',
+  2: 'Moving Down',
+  3: 'Opening Doors',
+  4: 'Closing Doors',
 };
 
 const directionMap = {
@@ -23,6 +23,11 @@ const doorStatusMap = {
 };
 
 // פונקציות עזר להמרת ערכים למחרוזות קריאות
+const getStatusText = (status) => {
+  if (typeof status === 'string') return status;
+  return statusMap[status] || String(status);
+};
+
 const getDirectionText = (direction) => {
   if (direction === 'Up' || direction === 0) return 'Up';
   if (direction === 'Down' || direction === 1) return 'Down';
@@ -44,7 +49,7 @@ const ElevatorStatus = ({ elevator }) => {
       <h3>Elevator Status</h3>
       <div style={{ marginBottom: '10px' }}>
         <span className={`status-indicator status-${String(elevator.status).toLowerCase()}`}></span>
-        <strong>Status: {elevator.status}</strong>
+        <strong>Status: {getStatusText(elevator.status)}</strong>
       </div>
       <div style={{ marginBottom: '10px' }}>
         <strong>Floor: {elevator.currentFloor}</strong>

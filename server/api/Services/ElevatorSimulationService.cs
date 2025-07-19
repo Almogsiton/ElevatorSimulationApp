@@ -149,20 +149,19 @@ public class ElevatorSimulationService : IElevatorSimulationService
             await context.SaveChangesAsync();
         }
 
-        // Only handle calls matching direction
+        // Handle all calls - elevator should stop at any floor with a call
         foreach (var call in pendingCalls)
         {
-            if (elevator.Status == ElevatorStatus.MovingUp && call.RequestedFloor > elevator.CurrentFloor)
+            // Always add the requested floor if it's not the current floor
+            if (call.RequestedFloor != elevator.CurrentFloor)
             {
                 await AddFloorToTargetsAsync(context, elevator, call.RequestedFloor);
-                if (call.DestinationFloor.HasValue)
-                    await AddFloorToTargetsAsync(context, elevator, call.DestinationFloor.Value);
             }
-            else if (elevator.Status == ElevatorStatus.MovingDown && call.RequestedFloor < elevator.CurrentFloor)
+            
+            // Add destination floor if it exists and is not the current floor
+            if (call.DestinationFloor.HasValue && call.DestinationFloor.Value != elevator.CurrentFloor)
             {
-                await AddFloorToTargetsAsync(context, elevator, call.RequestedFloor);
-                if (call.DestinationFloor.HasValue)
-                    await AddFloorToTargetsAsync(context, elevator, call.DestinationFloor.Value);
+                await AddFloorToTargetsAsync(context, elevator, call.DestinationFloor.Value);
             }
         }
     }
