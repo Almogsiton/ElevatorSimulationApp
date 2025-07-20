@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5091';
+import { API_CONFIG } from '../config/config.js';
 
 const getAuthHeaders = () => {
   return {
@@ -16,7 +16,7 @@ const handleResponse = async (response) => {
 
 export const authService = {
   async register(email, password) {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -25,7 +25,7 @@ export const authService = {
   },
 
   async login(email, password) {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -36,21 +36,21 @@ export const authService = {
 
 export const buildingService = {
   async getUserBuildings(userId) {
-    const response = await fetch(`${API_BASE_URL}/buildings/get/buildings/user/${userId}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/buildings/get/buildings/user/${userId}`, {
       headers: getAuthHeaders()
     });
     return handleResponse(response);
   },
 
   async getBuilding(buildingId, userId) {
-    const response = await fetch(`${API_BASE_URL}/buildings/get/${buildingId}/user/${userId}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/buildings/get/${buildingId}/user/${userId}`, {
       headers: getAuthHeaders()
     });
     return handleResponse(response);
   },
 
   async createBuilding(name, numberOfFloors, userId) {
-    const response = await fetch(`${API_BASE_URL}/buildings/create/user/${userId}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/buildings/create/user/${userId}`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ name, numberOfFloors })
@@ -63,7 +63,7 @@ export const elevatorCallService = {
   async createCall(buildingId, requestedFloor, destinationFloor = null) {
     const requestBody = { buildingId, requestedFloor, destinationFloor };
     console.log('Sending elevator call request:', requestBody);
-    const response = await fetch(`${API_BASE_URL}/elevatorcalls/create`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/elevatorcalls/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody)
@@ -72,7 +72,7 @@ export const elevatorCallService = {
   },
 
   async updateCall(callId, destinationFloor) {
-    const response = await fetch(`${API_BASE_URL}/elevatorcalls/update/${callId}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/elevatorcalls/update/${callId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ destinationFloor })
@@ -81,7 +81,7 @@ export const elevatorCallService = {
   },
 
   async getBuildingCalls(buildingId) {
-    const response = await fetch(`${API_BASE_URL}/elevatorcalls/get/building/calls/${buildingId}`);
+    const response = await fetch(`${API_CONFIG.BASE_URL}/elevatorcalls/get/building/calls/${buildingId}`);
     return handleResponse(response);
   }
 }; 

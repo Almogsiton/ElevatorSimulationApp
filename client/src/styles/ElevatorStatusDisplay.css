@@ -1,0 +1,85 @@
+/* ElevatorStatusDisplay Styles */
+
+.elevator-status-display {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 10px;
+  border: 1px solid #e9ecef;
+}
+
+.elevator-status-display h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 13px;
+  text-align: center;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  text-align: center;
+}
+
+.status-label {
+  font-size: 10px;
+  color: #6c757d;
+  font-weight: 500;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-value {
+  font-size: 12px;
+  font-weight: bold;
+  color: #495057;
+  font-family: 'Courier New', monospace;
+}
+
+/* Status-specific colors */
+.status-item:nth-child(1) .status-value {
+  color: #007bff; /* Status - Blue */
+}
+
+.status-item:nth-child(2) .status-value {
+  color: #28a745; /* Floor - Green */
+}
+
+.status-item:nth-child(3) .status-value {
+  color: #ffc107; /* Direction - Yellow */
+}
+
+.status-item:nth-child(4) .status-value {
+  color: #dc3545; /* Doors - Red */
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .status-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  
+  .status-item {
+    padding: 4px;
+  }
+  
+  .status-label {
+    font-size: 9px;
+  }
+  
+  .status-value {
+    font-size: 11px;
+  }
+} 
