@@ -194,7 +194,18 @@ const BuildingSimulationPage = () => {
       }
       
       setPendingCalls(prev => {
-        const newCall = { floor, direction: 'up', time: Date.now() }; // כיוון ברירת מחדל
+        // קבע כיוון חכם לפי מיקום המעלית והקומה
+        let direction = 'up';
+        if (floor < elevator.currentFloor) {
+          direction = 'down';
+        } else if (floor > elevator.currentFloor) {
+          direction = 'up';
+        } else {
+          // אם הקומה שווה למיקום המעלית (לא אמור לקרות), קבע לפי הקומה
+          direction = floor === 0 ? 'up' : 'down';
+        }
+        
+        const newCall = { floor, direction, time: Date.now() };
         const idx = prev.findIndex(c => {
           const pNew = getPendingCallPriority(newCall, elevator, building);
           const pC = getPendingCallPriority(c, elevator, building);
@@ -329,15 +340,26 @@ const BuildingSimulationPage = () => {
       const callsToKeep = [];
       
       pendingCalls.forEach(call => {
-        if (
-          (newDirection === 'up' && call.direction === 'up' && call.floor > elevator.currentFloor) ||
-          (newDirection === 'up' && call.direction === 'down' && call.floor === maxFloor) ||
-          (newDirection === 'down' && call.direction === 'down' && call.floor < elevator.currentFloor) ||
-          (newDirection === 'down' && call.direction === 'up' && call.floor === 0) ||
-          // מקרה קצה: כל הקריאות באותו כיוון, אז תשחרר את כולן
-          (allUp && newDirection === 'up' && call.direction === 'up') ||
-          (allDown && newDirection === 'down' && call.direction === 'down')
-        ) {
+        // בדוק אם הקריאה מתאימה לכיוון החדש
+        let shouldSend = false;
+        
+        if (newDirection === 'up') {
+          // במצב עליה - שלח רק קריאות up או קריאות down מהקומה העליונה
+          if (call.direction === 'up' && call.floor > elevator.currentFloor) {
+            shouldSend = true;
+          } else if (call.direction === 'down' && call.floor === maxFloor) {
+            shouldSend = true;
+          }
+        } else if (newDirection === 'down') {
+          // במצב ירידה - שלח רק קריאות down או קריאות up מהקומה התחתונה
+          if (call.direction === 'down' && call.floor < elevator.currentFloor) {
+            shouldSend = true;
+          } else if (call.direction === 'up' && call.floor === 0) {
+            shouldSend = true;
+          }
+        }
+        
+        if (shouldSend) {
           callsToSend.push(call);
         } else {
           callsToKeep.push(call);
@@ -370,12 +392,26 @@ const BuildingSimulationPage = () => {
       const callsToSend = [];
       const callsToKeep = [];
       pendingCalls.forEach(call => {
-        if (
-          (newDirection === 'up' && call.direction === 'up' && call.floor > elevator.currentFloor) ||
-          (newDirection === 'up' && call.direction === 'down' && call.floor === maxFloor) ||
-          (newDirection === 'down' && call.direction === 'down' && call.floor < elevator.currentFloor) ||
-          (newDirection === 'down' && call.direction === 'up' && call.floor === 0)
-        ) {
+        // בדוק אם הקריאה מתאימה לכיוון החדש
+        let shouldSend = false;
+        
+        if (newDirection === 'up') {
+          // במצב עליה - שלח רק קריאות up או קריאות down מהקומה העליונה
+          if (call.direction === 'up' && call.floor > elevator.currentFloor) {
+            shouldSend = true;
+          } else if (call.direction === 'down' && call.floor === maxFloor) {
+            shouldSend = true;
+          }
+        } else if (newDirection === 'down') {
+          // במצב ירידה - שלח רק קריאות down או קריאות up מהקומה התחתונה
+          if (call.direction === 'down' && call.floor < elevator.currentFloor) {
+            shouldSend = true;
+          } else if (call.direction === 'up' && call.floor === 0) {
+            shouldSend = true;
+          }
+        }
+        
+        if (shouldSend) {
           callsToSend.push(call);
         } else {
           callsToKeep.push(call);
