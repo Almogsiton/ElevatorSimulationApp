@@ -1,45 +1,32 @@
 import React from 'react';
+import '../styles/ElevatorStatus.css';
+import { 
+  STATUS_TEXT_MAP, 
+  DIRECTION_TEXT_MAP, 
+  DOOR_STATUS_TEXT_MAP,
+  ELEVATOR_STATUS,
+  ELEVATOR_DIRECTION,
+  DOOR_STATUS
+} from '../config/config';
 
-// Enum mappings for backend numeric values
-const statusMap = {
-  0: 'Idle',
-  1: 'Moving Up',
-  2: 'Moving Down',
-  3: 'Opening Doors',
-  4: 'Closing Doors',
-};
-
-const directionMap = {
-  0: 'Up',
-  1: 'Down',
-  2: 'None',
-};
-
-const doorStatusMap = {
-  0: 'Closed',
-  1: 'Open',
-  2: 'Opening',
-  3: 'Closing',
-};
-
-// פונקציות עזר להמרת ערכים למחרוזות קריאות
+// Component to display current elevator status (status, floor, direction, doors)
 const getStatusText = (status) => {
   if (typeof status === 'string') return status;
-  return statusMap[status] || String(status);
+  return STATUS_TEXT_MAP[status] || String(status);
 };
 
 const getDirectionText = (direction) => {
-  if (direction === 'Up' || direction === 0) return 'Up';
-  if (direction === 'Down' || direction === 1) return 'Down';
-  if (direction === 'None' || direction === 2) return 'None';
+  if (direction === 'Up' || direction === ELEVATOR_DIRECTION.UP) return 'Up';
+  if (direction === 'Down' || direction === ELEVATOR_DIRECTION.DOWN) return 'Down';
+  if (direction === 'None' || direction === ELEVATOR_DIRECTION.NONE) return 'None';
   return String(direction);
 };
 
 const getDoorStatusText = (doorStatus) => {
-  if (doorStatus === 'Open' || doorStatus === 0) return 'Open';
-  if (doorStatus === 'Closed' || doorStatus === 1) return 'Closed';
-  if (doorStatus === 'Opening' || doorStatus === 2) return 'Opening';
-  if (doorStatus === 'Closing' || doorStatus === 3) return 'Closing';
+  if (doorStatus === 'Open' || doorStatus === DOOR_STATUS.OPEN) return 'Open';
+  if (doorStatus === 'Closed' || doorStatus === DOOR_STATUS.CLOSED) return 'Closed';
+  if (doorStatus === 'Opening' || doorStatus === DOOR_STATUS.OPENING) return 'Opening';
+  if (doorStatus === 'Closing' || doorStatus === DOOR_STATUS.CLOSING) return 'Closing';
   return String(doorStatus);
 };
 
@@ -47,14 +34,14 @@ const ElevatorStatus = ({ elevator }) => {
   return (
     <div className="elevator-status">
       <h3>Elevator Status</h3>
-      <div style={{ marginBottom: '10px' }}>
+      <div>
         <span className={`status-indicator status-${String(elevator.status).toLowerCase()}`}></span>
         <strong>Status: {getStatusText(elevator.status)}</strong>
       </div>
-      <div style={{ marginBottom: '10px' }}>
+      <div>
         <strong>Floor: {elevator.currentFloor}</strong>
       </div>
-      <div style={{ marginBottom: '10px' }}>
+      <div>
         <strong>Direction: {getDirectionText(elevator.direction)}</strong>
       </div>
       <div>

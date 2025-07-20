@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// React Context for managing user authentication state across the application
 const AuthContext = createContext();
 
 export const useAuth = () => {

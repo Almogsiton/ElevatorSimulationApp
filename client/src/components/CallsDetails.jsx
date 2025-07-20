@@ -1,25 +1,23 @@
 import React from 'react';
+import '../styles/CallsDetails.css';
+
+// Component for displaying floor calls and pending calls in a card layout
 
 const CallsDetails = ({ 
   sortedFloorCalls, 
   sortedPendingCalls 
 }) => {
   return (
-    <div className="calls-details" style={{ 
-      display: 'flex', 
-      gap: '16px', 
-      marginTop: '16px',
-      flexWrap: 'wrap'
-    }}>
+    <div className="calls-details">
       {/* Floor Calls */}
-      <div className="card" style={{ flex: '1', minWidth: '200px' }}>
-        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#495057' }}>Floor Calls</h4>
-        <div style={{ fontSize: '12px' }}>
+      <div className="card">
+        <h4>Floor Calls</h4>
+        <div className="card-content">
           {sortedFloorCalls.length === 0 ? (
-            <span style={{ color: '#888' }}>No active calls</span>
+            <span className="no-calls">No active calls</span>
           ) : (
             sortedFloorCalls.map(call => (
-              <div key={call.id} style={{ marginBottom: '4px' }}>
+              <div key={call.id} className="call-item">
                 Floor {call.requestedFloor} ({new Date(call.callTime).toLocaleTimeString()})
               </div>
             ))
@@ -28,14 +26,14 @@ const CallsDetails = ({
       </div>
 
       {/* Pending Calls */}
-      <div className="card" style={{ flex: '1', minWidth: '200px' }}>
-        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#495057' }}>Pending Calls</h4>
-        <div style={{ fontSize: '12px' }}>
+      <div className="card">
+        <h4>Pending Calls</h4>
+        <div className="card-content">
           {sortedPendingCalls.length === 0 ? (
-            <span style={{ color: '#888' }}>No pending calls</span>
+            <span className="no-calls">No pending calls</span>
           ) : (
             sortedPendingCalls.map((call, idx) => (
-              <div key={call.floor + '-' + (call.direction || call.type) + '-' + call.time + '-' + idx} style={{ marginBottom: '4px' }}>
+              <div key={call.floor + '-' + (call.direction || call.type) + '-' + call.time + '-' + idx} className="call-item">
                 Floor {call.floor} ({call.direction || call.type})
               </div>
             ))

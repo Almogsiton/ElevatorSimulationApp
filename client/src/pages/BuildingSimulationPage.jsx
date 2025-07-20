@@ -4,6 +4,11 @@ import * as signalR from '@microsoft/signalr';
 import { buildingService, elevatorCallService } from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
 import ElevatorStatus from '../components/ElevatorStatus';
+import CallsDetails from '../components/CallsDetails';
+import { ELEVATOR_SIMULATION_CONFIG } from '../config/config';
+import '../styles/BuildingSimulation.css';
+
+// Main elevator simulation page - displays building floors, elevator status, and handles real-time updates
 
 const BuildingSimulationPage = () => {
   const { buildingId } = useParams();
@@ -19,7 +24,6 @@ const BuildingSimulationPage = () => {
   const [calls, setCalls] = useState([]); 
   const [toast, setToast] = useState(null); 
   const [pendingCalls, setPendingCalls] = useState(() => {
-    // Load from localStorage if exists
     const saved = localStorage.getItem('pendingCalls_' + buildingId);
     return saved ? JSON.parse(saved) : [];
   });
@@ -44,7 +48,6 @@ const BuildingSimulationPage = () => {
 
   useEffect(() => {
     if (elevator && calls.length > 0) {
-      // בדוק אם המעלית הגיעה לקומה עם קריאה פעילה
       const currentFloor = elevator.currentFloor;
       const floorCall = floorCalls.find(c => c.requestedFloor === currentFloor);
       if (floorCall) {
@@ -56,10 +59,9 @@ const BuildingSimulationPage = () => {
 
   const showToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), ELEVATOR_SIMULATION_CONFIG.TOAST_DURATION);
   };
 
-  // load all the active calls 
   const loadCalls = async () => {
     try {
       const allCalls = await elevatorCallService.getBuildingCalls(numericBuildingId);
@@ -88,7 +90,7 @@ const BuildingSimulationPage = () => {
     }
     try {
       const connection = new signalR.HubConnectionBuilder()
-        .withUrl('http://localhost:5091/elevatorHub')
+        .withUrl(ELEVATOR_SIMULATION_CONFIG.SIGNALR_URL)
         .withAutomaticReconnect()
         .build();
 
@@ -100,7 +102,6 @@ const BuildingSimulationPage = () => {
           direction: message.direction,
           doorStatus: message.doorStatus
         }));
-        // בכל עדכון, נטען מחדש את הבקשות
         loadCalls();
         if (message.doorStatus === 'Open' && activeCall) {
           setShowDestinationButtons(true);
@@ -115,7 +116,6 @@ const BuildingSimulationPage = () => {
     }
   };
 
-  // פונקציית עדיפות לקריאה ממתינה
   const getPendingCallPriority = (call, elevator, building) => {
     if (!elevator || elevator.direction === 'None' || elevator.direction === 2) return 0;
     const maxFloor = building?.numberOfFloors ? building.numberOfFloors - 1 : 0;
@@ -133,21 +133,17 @@ const BuildingSimulationPage = () => {
   };
 
   const handleCallElevator = async (floor, direction) => {
-    // מניעת כפילות ב-pendingCalls
     if (pendingCalls.some(c => c.floor === floor && c.direction === direction)) {
               showToast('A pending call already exists for this floor and direction');
       return;
     }
-    // מניעת כפילות בקריאות פעילות
     if (floorCalls.some(c => c.requestedFloor === floor && c.direction === direction)) {
               showToast('An active call already exists for this floor and direction');
       return;
     }
     if (!isCallOnTheWay(floor, direction)) {
-      // הכנסה חכמה למקום הנכון
       setPendingCalls(prev => {
         const newCall = { floor, direction, time: Date.now() };
-        // מניעת כפילות (ליתר ביטחון)
         if (prev.some(c => c.floor === floor && c.direction === direction)) return prev;
         const idx = prev.findIndex(c => {
           const pNew = getPendingCallPriority(newCall, elevator, building);
@@ -175,9 +171,7 @@ const BuildingSimulationPage = () => {
   const handleFloorNumberClick = async (floor) => {
     if (elevator.currentFloor === floor) return;
     
-    // בדוק אם הקומה על הדרך
     if (isCallOnTheWay(floor, 'up') || isCallOnTheWay(floor, 'down')) {
-      // הקומה על הדרך - הוסף לקריאות לקומה
       try {
         const call = await elevatorCallService.createCall(numericBuildingId, floor);
         setError('');
@@ -187,21 +181,18 @@ const BuildingSimulationPage = () => {
         setError(error.message);
       }
     } else {
-      // הקומה לא על הדרך - הוסף לקריאות ממתינות
       if (pendingCalls.some(c => c.floor === floor)) {
         showToast('A pending call already exists for this floor');
         return;
       }
       
       setPendingCalls(prev => {
-        // קבע כיוון חכם לפי מיקום המעלית והקומה
         let direction = 'up';
         if (floor < elevator.currentFloor) {
           direction = 'down';
         } else if (floor > elevator.currentFloor) {
           direction = 'up';
         } else {
-          // אם הקומה שווה למיקום המעלית (לא אמור לקרות), קבע לפי הקומה
           direction = floor === 0 ? 'up' : 'down';
         }
         
@@ -239,16 +230,13 @@ const BuildingSimulationPage = () => {
     return elevator.currentFloor * floorHeight;
   };
 
-  // פילטרים לבקשות
   const floorCalls = calls.filter(c => c.destinationFloor === null);
 
-  // Split floorCalls into up and down calls
   const upCalls = floorCalls.filter(c => c.direction === 'up');
   const downCalls = floorCalls.filter(c => c.direction === 'down');
 
 
 
-  // Helper: האם הקריאה "על הדרך"?
   const isCallOnTheWay = (floor, direction) => {
     if (!elevator) return true;
     if (elevator.status === 'Idle' || elevator.direction === 'None' || elevator.direction === 2) return true;
@@ -256,18 +244,13 @@ const BuildingSimulationPage = () => {
     
     // עולה
     if (elevator.direction === 'Up' || elevator.direction === 0) {
-      // קריאה לרדת מהקומה העליונה
       if (floor === maxFloor && direction === 'down') return true;
-      // קריאה לעלות מקומה גבוהה מהמעלית
       if (direction === 'up' && floor > elevator.currentFloor) return true;
       return false;
     }
     
-    // יורדת
     if (elevator.direction === 'Down' || elevator.direction === 1) {
-      // קריאה לעלות מהקומה התחתונה
       if (floor === 0 && direction === 'up') return true;
-      // קריאה לרדת מקומה נמוכה מהמעלית
       if (direction === 'down' && floor < elevator.currentFloor) return true;
       return false;
     }
@@ -275,26 +258,22 @@ const BuildingSimulationPage = () => {
     return false;
   };
 
-  // Helper to calculate elevator car position
   const getFloorTop = (floor) => {
     const totalFloors = building.numberOfFloors;
-    const shaftHeight = 60 * totalFloors; // 60px per floor
-    return (totalFloors - 1 - floor) * 60 + 8; // 8px padding
+    const shaftHeight = ELEVATOR_SIMULATION_CONFIG.FLOOR_HEIGHT * totalFloors;
+    return (totalFloors - 1 - floor) * ELEVATOR_SIMULATION_CONFIG.FLOOR_HEIGHT + ELEVATOR_SIMULATION_CONFIG.SHAFT_PADDING;
   };
 
-  // שמירה ל-localStorage בכל שינוי
   useEffect(() => {
     localStorage.setItem('pendingCalls_' + buildingId, JSON.stringify(pendingCalls));
   }, [pendingCalls, buildingId]);
 
-  // שליחת קריאות ממתינות רלוונטיות כאשר המעלית פנויה ואין קריאות פעילות
   useEffect(() => {
     if (!elevator || pendingCalls.length === 0) return;
     const isElevatorFree = (elevator.status === 'Idle' || elevator.direction === 'None' || elevator.direction === 2);
     if (isElevatorFree && floorCalls.length === 0 && pendingCalls.length > 0) {
       const maxFloor = building?.numberOfFloors ? building.numberOfFloors - 1 : 0;
       
-      // בדוק אם כל הקריאות הממתינות הן באותו כיוון
       const allUp = pendingCalls.every(call => call.direction === 'up');
       const allDown = pendingCalls.every(call => call.direction === 'down');
       
@@ -305,20 +284,14 @@ const BuildingSimulationPage = () => {
       } else if (allDown) {
         newDirection = 'down';
       } else {
-        // ערבוב כיוונים – נדרש לוגיקה חכמה יותר
-        // קודם כל, בדוק אם יש קריאות לירידה מהקומה העליונה
         const downFromTop = pendingCalls.some(call => call.direction === 'down' && call.floor === maxFloor);
-        // בדוק אם יש קריאות לעליה מהקומה התחתונה
         const upFromBottom = pendingCalls.some(call => call.direction === 'up' && call.floor === 0);
         
         if (downFromTop && elevator.currentFloor === maxFloor) {
-          // המעלית בקומה העליונה ויש קריאה לירידה - תרד
           newDirection = 'down';
         } else if (upFromBottom && elevator.currentFloor === 0) {
-          // המעלית בקומה התחתונה ויש קריאה לעליה - תעלה
           newDirection = 'up';
         } else {
-          // קבע לפי הקריאה הקרובה ביותר למעלית
           const closestCall = pendingCalls.reduce((closest, current) => {
             const closestDistance = Math.abs(closest.floor - elevator.currentFloor);
             const currentDistance = Math.abs(current.floor - elevator.currentFloor);
@@ -335,23 +308,19 @@ const BuildingSimulationPage = () => {
         }
       }
       
-      // שחרר רק קריאות שתואמות לכיוון החדש
       const callsToSend = [];
       const callsToKeep = [];
       
       pendingCalls.forEach(call => {
-        // בדוק אם הקריאה מתאימה לכיוון החדש
         let shouldSend = false;
         
         if (newDirection === 'up') {
-          // במצב עליה - שלח רק קריאות up או קריאות down מהקומה העליונה
           if (call.direction === 'up' && call.floor > elevator.currentFloor) {
             shouldSend = true;
           } else if (call.direction === 'down' && call.floor === maxFloor) {
             shouldSend = true;
           }
         } else if (newDirection === 'down') {
-          // במצב ירידה - שלח רק קריאות down או קריאות up מהקומה התחתונה
           if (call.direction === 'down' && call.floor < elevator.currentFloor) {
             shouldSend = true;
           } else if (call.direction === 'up' && call.floor === 0) {
@@ -378,12 +347,10 @@ const BuildingSimulationPage = () => {
     // eslint-disable-next-line
   }, [elevator?.status, elevator?.direction, floorCalls, pendingCalls]);
 
-  // שליחת קריאות ממתינות בעת שינוי כיוון
   const prevDirectionRef = useRef();
   useEffect(() => {
     if (!elevator) return;
     if (prevDirectionRef.current && elevator.direction !== prevDirectionRef.current && pendingCalls.length > 0) {
-      // קבע את הכיוון החדש
       const newDirection = elevator.direction === 0 || elevator.direction === 'Up' ? 'up'
         : elevator.direction === 1 || elevator.direction === 'Down' ? 'down'
         : null;
@@ -392,18 +359,15 @@ const BuildingSimulationPage = () => {
       const callsToSend = [];
       const callsToKeep = [];
       pendingCalls.forEach(call => {
-        // בדוק אם הקריאה מתאימה לכיוון החדש
         let shouldSend = false;
         
         if (newDirection === 'up') {
-          // במצב עליה - שלח רק קריאות up או קריאות down מהקומה העליונה
           if (call.direction === 'up' && call.floor > elevator.currentFloor) {
             shouldSend = true;
           } else if (call.direction === 'down' && call.floor === maxFloor) {
             shouldSend = true;
           }
         } else if (newDirection === 'down') {
-          // במצב ירידה - שלח רק קריאות down או קריאות up מהקומה התחתונה
           if (call.direction === 'down' && call.floor < elevator.currentFloor) {
             shouldSend = true;
           } else if (call.direction === 'up' && call.floor === 0) {
@@ -430,9 +394,7 @@ const BuildingSimulationPage = () => {
     // eslint-disable-next-line
   }, [elevator?.direction]);
 
-  // מיון רשימות להצגה
   const sortedFloorCalls = [...floorCalls].sort((a, b) => a.requestedFloor - b.requestedFloor);
-  // מיון חכם של קריאות ממתינות
   const sortedPendingCalls = [...pendingCalls].sort((a, b) => {
     const pa = getPendingCallPriority(a, elevator, building);
     const pb = getPendingCallPriority(b, elevator, building);
@@ -466,16 +428,12 @@ const BuildingSimulationPage = () => {
   return (
     <div className="container">
       {toast && (
-        <div style={{
-          position: 'fixed', top: 30, right: 30, zIndex: 9999,
-          background: '#667eea', color: 'white', padding: '16px 32px', borderRadius: 12,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', fontSize: 18, fontWeight: 500
-        }}>
+        <div className="toast-notification">
           {toast}
         </div>
       )}
       <div className="card">
-        <button className="btn btn-secondary" style={{ float: 'right', marginBottom: 12 }} onClick={() => navigate('/buildings')}>
+        <button className="btn btn-secondary back-button" onClick={() => navigate('/buildings')}>
           Back to Buildings
         </button>
         <h2>{building.name}</h2>
@@ -484,7 +442,7 @@ const BuildingSimulationPage = () => {
         </div>
 
         <div className="building-shaft-container">
-          <div className="building-shaft" style={{ height: 60 * building.numberOfFloors }}>
+          <div className="building-shaft" style={{ height: ELEVATOR_SIMULATION_CONFIG.FLOOR_HEIGHT * building.numberOfFloors }}>
             {Array.from({ length: building.numberOfFloors }, (_, i) => building.numberOfFloors - 1 - i).map((floor) => (
               <div
                 key={floor}
@@ -524,30 +482,10 @@ const BuildingSimulationPage = () => {
           </div>
         </div>
         {/* Requests lists */}
-        <div className="requests-lists" style={{ display: 'flex', gap: '24px', marginTop: '32px', justifyContent: 'center' }}>
-          <div className="card floor-calls-table">
-            <h4>Floor Calls</h4>
-            <ul style={{ paddingInlineStart: 18 }}>
-              {sortedFloorCalls.length === 0 && <li style={{ color: '#888' }}>No active calls</li>}
-              {sortedFloorCalls.map(call => (
-                <li key={call.id}>
-                  Floor {call.requestedFloor} ({new Date(call.callTime).toLocaleTimeString()})
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="card pending-calls-table">
-            <h4>Pending Calls</h4>
-            <ul style={{ paddingInlineStart: 18 }}>
-              {sortedPendingCalls.length === 0 && <li style={{ color: '#888' }}>No pending calls</li>}
-              {sortedPendingCalls.map((call, idx) => (
-                <li key={call.floor + '-' + call.direction + '-' + call.time + '-' + idx}>
-                  Floor {call.floor} ({call.direction})
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <CallsDetails 
+          sortedFloorCalls={sortedFloorCalls}
+          sortedPendingCalls={sortedPendingCalls}
+        />
       </div>
     </div>
   );
