@@ -1,3 +1,6 @@
+// Elevator call assignment entity - represents assignment of calls to specific elevators
+// Contains relationship between elevators and calls with assignment timing
+
 namespace ElevatorSimulationApi.Models.Entities;
 
 public class ElevatorCallAssignment

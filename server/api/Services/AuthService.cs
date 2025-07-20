@@ -1,3 +1,6 @@
+// Authentication service implementation - handles user registration, login, and JWT token management
+// Provides password hashing, token validation, and user authentication logic
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -9,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 namespace ElevatorSimulationApi.Services;
 
-// todo remove or use token 
 public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
@@ -21,6 +23,7 @@ public class AuthService : IAuthService
         _configuration = configuration;
     }
 
+    // Register new user with email and hashed password
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
@@ -47,6 +50,7 @@ public class AuthService : IAuthService
         };
     }
 
+    // Authenticate user with email and password verification
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
@@ -63,6 +67,7 @@ public class AuthService : IAuthService
         };
     }
 
+    // Validate JWT token authenticity and expiration
     public Task<bool> ValidateTokenAsync(string token)
     {
         try
@@ -89,6 +94,7 @@ public class AuthService : IAuthService
         }
     }
 
+    // Extract user ID from JWT token claims
     public Task<int> GetUserIdFromTokenAsync(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
@@ -103,6 +109,7 @@ public class AuthService : IAuthService
         return Task.FromResult(userId);
     }
 
+    // Generate JWT token for authenticated user
     private string GenerateJwtToken(User user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();

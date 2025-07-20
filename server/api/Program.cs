@@ -1,3 +1,6 @@
+// Main application entry point - configures services, middleware, and application startup
+// Handles dependency injection, CORS, SignalR, and API routing setup
+
 using ElevatorSimulationApi.Data;
 using ElevatorSimulationApi.Hubs;
 using ElevatorSimulationApi.Services;

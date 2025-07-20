@@ -1,3 +1,6 @@
+// Building entity - represents buildings with elevators and call management
+// Contains building details, user ownership, and relationships to elevators and calls
+
 using System.ComponentModel.DataAnnotations;
 
 namespace ElevatorSimulationApi.Models.Entities;

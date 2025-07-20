@@ -1,3 +1,6 @@
+// Elevator entity - represents elevator state and movement information
+// Contains current position, status, direction, door state, and call assignments
+
 using ElevatorSimulationApi.Models.Enums;
 
 namespace ElevatorSimulationApi.Models.Entities;

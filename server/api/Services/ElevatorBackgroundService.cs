@@ -1,4 +1,8 @@
+// Elevator background service - runs elevator simulation in background at configurable intervals
+// Handles periodic elevator movement processing and error logging
+
 using ElevatorSimulationApi.Services;
+using ElevatorSimulationApi.Config;
 
 namespace ElevatorSimulationApi.Services;
 
@@ -18,9 +22,10 @@ public class ElevatorBackgroundService : BackgroundService
         _configuration = configuration;
     }
 
+    // Execute elevator simulation in background loop with configurable interval
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var intervalSeconds = _configuration.GetValue<int>("ElevatorSimulation:IntervalSeconds", 30);
+        var intervalSeconds = _configuration.GetValue<int>("ElevatorSimulation:IntervalSeconds", AppConstants.Simulation.DefaultIntervalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {

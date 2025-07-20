@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
+import '../styles/LoginPage.css';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -60,7 +61,7 @@ const LoginPage = () => {
           </button>
         </form>
         <div className="auth-links">
-          <Link to="/register" className="btn btn-secondary" style={{ display: 'inline-block', marginTop: '10px' }}>
+          <Link to="/register" className="btn btn-secondary">
             Don't have an account? Register
           </Link>
         </div>

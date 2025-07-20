@@ -1,17 +1,22 @@
+// Building DTOs - data transfer objects for building management operations
+// Contains request and response models for building creation and retrieval
+
 using System.ComponentModel.DataAnnotations;
+using ElevatorSimulationApi.Config;
 namespace ElevatorSimulationApi.Models.DTOs;
 
-// TODO -> take range from config 
+// Building creation request with name and floor count validation
 public class CreateBuildingRequest
 {
     [Required]
     public string Name { get; set; } = string.Empty;
 
     [Required]
-    [Range(1, 100)]
+    [Range(AppConstants.Building.MinFloors, AppConstants.Building.MaxFloors)]
     public int NumberOfFloors { get; set; }
 }
 
+// Building response with complete building and elevator information
 public class BuildingResponse
 {
     public int Id { get; set; }
@@ -21,6 +26,7 @@ public class BuildingResponse
     public ElevatorResponse Elevator { get; set; } = null!;
 }
 
+// Building list response with basic building information
 public class BuildingListResponse
 {
     public int Id { get; set; }

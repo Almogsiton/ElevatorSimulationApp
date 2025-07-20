@@ -1,28 +1,33 @@
+// Elevator call DTOs - data transfer objects for elevator call management
+// Contains request and response models for call creation, updates, and status
+
 using System.ComponentModel.DataAnnotations;
+using ElevatorSimulationApi.Config;
 namespace ElevatorSimulationApi.Models.DTOs;
 
-// todo config 
-
+// Elevator call creation request with floor and optional destination
 public class CreateElevatorCallRequest
 {
     [Required]
     public int BuildingId { get; set; }
 
     [Required]
-    [Range(0, 100)]
+    [Range(AppConstants.Elevator.MinFloor, AppConstants.Elevator.MaxFloor)]
     public int RequestedFloor { get; set; }
 
-    [Range(0, 100)]
+    [Range(AppConstants.Elevator.MinFloor, AppConstants.Elevator.MaxFloor)]
     public int? DestinationFloor { get; set; }
 }
 
+// Elevator call update request with destination floor
 public class UpdateElevatorCallRequest
 {
     [Required]
-    [Range(0, 100)]
+    [Range(AppConstants.Elevator.MinFloor, AppConstants.Elevator.MaxFloor)]
     public int DestinationFloor { get; set; }
 }
 
+// Elevator call response with complete call information
 public class ElevatorCallResponse
 {
     public int Id { get; set; }

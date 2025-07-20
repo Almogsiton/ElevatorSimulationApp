@@ -1,3 +1,6 @@
+// Building service implementation - manages building CRUD operations and elevator creation
+// Handles user building queries, building creation with elevators, and Dapper performance queries
+
 using ElevatorSimulationApi.Data;
 using ElevatorSimulationApi.Models.DTOs;
 using ElevatorSimulationApi.Models.Entities;
@@ -18,6 +21,7 @@ public class BuildingService : IBuildingService
         _context = context;
     }
 
+    // Get all buildings owned by a specific user
     public async Task<List<BuildingListResponse>> GetUserBuildingsAsync(int userId)
     {
         var buildings = await _context.Buildings
@@ -33,6 +37,7 @@ public class BuildingService : IBuildingService
         return buildings;
     }
 
+    // Get specific building with elevator details for user
     public async Task<BuildingResponse> GetBuildingAsync(int buildingId, int userId)
     {
         var building = await _context.Buildings
@@ -62,6 +67,7 @@ public class BuildingService : IBuildingService
         };
     }
 
+    // Create new building with elevator for user
     public async Task<BuildingResponse> CreateBuildingAsync(CreateBuildingRequest request, int userId)
     {
         var building = new Building
@@ -104,6 +110,7 @@ public class BuildingService : IBuildingService
         };
     }
 
+    // Get all buildings using Dapper for performance testing
     public async Task<List<Building>> GetAllBuildingsWithDapperAsync()
     {
         using (var connection = new SqlConnection(_context.Database.GetDbConnection().ConnectionString))

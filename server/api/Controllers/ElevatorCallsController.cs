@@ -1,3 +1,6 @@
+// Elevator calls controller - manages elevator call requests and updates
+// Handles call creation, updates, and building-specific call queries
+
 using ElevatorSimulationApi.Models.DTOs;
 using ElevatorSimulationApi.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +18,7 @@ public class ElevatorCallsController : ControllerBase
         _elevatorCallService = elevatorCallService;
     }
 
+    // Create new elevator call with floor and optional destination
     [HttpPost("create")]
     public async Task<ActionResult<ElevatorCallResponse>> CreateCall(CreateElevatorCallRequest request)
     {
@@ -29,6 +33,7 @@ public class ElevatorCallsController : ControllerBase
         }
     }
 
+    // Update existing elevator call with destination floor
     [HttpPut("update/{id}")]
     public async Task<ActionResult<ElevatorCallResponse>> UpdateCall(int id, UpdateElevatorCallRequest request)
     {
@@ -43,6 +48,7 @@ public class ElevatorCallsController : ControllerBase
         }
     }
 
+    // Get all elevator calls for a specific building
     [HttpGet("get/building/calls/{buildingId}")]
     public async Task<ActionResult<List<ElevatorCallResponse>>> GetBuildingCalls(int buildingId)
     {

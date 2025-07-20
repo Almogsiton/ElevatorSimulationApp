@@ -1,3 +1,6 @@
+// Elevator call service implementation - manages elevator call creation, updates, and queries
+// Handles call validation, duplicate prevention, and building-specific call management
+
 using ElevatorSimulationApi.Data;
 using ElevatorSimulationApi.Models.DTOs;
 using ElevatorSimulationApi.Models.Entities;
@@ -14,6 +17,7 @@ public class ElevatorCallService : IElevatorCallService
         _context = context;
     }
 
+    // Create new elevator call with floor validation and duplicate prevention
     public async Task<ElevatorCallResponse> CreateCallAsync(CreateElevatorCallRequest request)
     {
         Console.WriteLine($"Creating elevator call for building {request.BuildingId}, floor {request.RequestedFloor}");
@@ -79,6 +83,7 @@ public class ElevatorCallService : IElevatorCallService
         };
     }
 
+    // Update existing elevator call with destination floor
     public async Task<ElevatorCallResponse> UpdateCallAsync(int callId, UpdateElevatorCallRequest request)
     {
         var call = await _context.ElevatorCalls
@@ -109,6 +114,7 @@ public class ElevatorCallService : IElevatorCallService
         };
     }
 
+    // Get all elevator calls for a specific building ordered by time
     public async Task<List<ElevatorCallResponse>> GetBuildingCallsAsync(int buildingId)
     {
         var calls = await _context.ElevatorCalls

@@ -1,3 +1,6 @@
+// User entity - represents application users with authentication and building ownership
+// Contains user credentials and relationship to owned buildings
+
 using System.ComponentModel.DataAnnotations;
 
 namespace ElevatorSimulationApi.Models.Entities;

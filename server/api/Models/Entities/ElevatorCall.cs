@@ -1,3 +1,6 @@
+// Elevator call entity - represents elevator call requests with floor and destination information
+// Contains call details, timing, handling status, and assignment to elevators
+
 namespace ElevatorSimulationApi.Models.Entities;
 
 public class ElevatorCall

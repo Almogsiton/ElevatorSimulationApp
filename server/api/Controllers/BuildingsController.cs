@@ -1,3 +1,6 @@
+// Buildings controller - manages building CRUD operations and user building access
+// Handles building creation, retrieval, and user-specific building queries
+
 using ElevatorSimulationApi.Models.DTOs;
 using ElevatorSimulationApi.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +19,7 @@ public class BuildingsController : ControllerBase
         _buildingService = buildingService;
     }
 
+    // Get all buildings owned by a specific user
     [HttpGet("get/buildings/user/{userId}")]
     public async Task<ActionResult<List<BuildingListResponse>>> GetUserBuildings(int userId)
     {
@@ -30,6 +34,7 @@ public class BuildingsController : ControllerBase
         }
     }
 
+    // Get specific building details with elevator information
     [HttpGet("get/{buildingId}/user/{userId}")]
     public async Task<ActionResult<BuildingResponse>> GetBuilding(int buildingId, int userId)
     {
@@ -48,6 +53,7 @@ public class BuildingsController : ControllerBase
         }
     }
 
+    // Create new building for a specific user
     [HttpPost("create/user/{userId}")]
     public async Task<ActionResult<BuildingResponse>> CreateBuilding(CreateBuildingRequest request, int userId)
     {
@@ -62,6 +68,7 @@ public class BuildingsController : ControllerBase
         }
     }
 
+    // Get all buildings using Dapper for performance testing
     [HttpGet("dapper/all")]
     public async Task<ActionResult<IEnumerable<Building>>> GetAllBuildingsDapper()
     {

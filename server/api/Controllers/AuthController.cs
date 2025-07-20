@@ -1,3 +1,6 @@
+// Authentication controller - handles user registration and login endpoints
+// Provides JWT token generation and user validation
+
 using ElevatorSimulationApi.Models.DTOs;
 using ElevatorSimulationApi.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +18,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    // Register new user with email and password
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
     {
@@ -29,6 +33,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    // Authenticate existing user and return JWT token
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {

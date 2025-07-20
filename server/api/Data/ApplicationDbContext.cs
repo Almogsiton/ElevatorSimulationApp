@@ -1,5 +1,9 @@
+// Application database context - Entity Framework Core DbContext for elevator simulation
+// Manages database entities, relationships, and entity configurations
+
 using Microsoft.EntityFrameworkCore;
 using ElevatorSimulationApi.Models.Entities;
+using ElevatorSimulationApi.Config;
 
 namespace ElevatorSimulationApi.Data;
 
@@ -15,12 +19,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<ElevatorCall> ElevatorCalls { get; set; }
     public DbSet<ElevatorCallAssignment> ElevatorCallAssignments { get; set; }
 
+    // Configure entity relationships and constraints
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(AppConstants.Auth.MaxEmailLength);
             entity.Property(e => e.Password).IsRequired();
             entity.HasIndex(e => e.Email).IsUnique();
         });
@@ -28,7 +33,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Building>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(AppConstants.Building.MaxNameLength);
             entity.Property(e => e.NumberOfFloors).IsRequired();
             entity.HasOne(e => e.User).WithMany(u => u.Buildings).HasForeignKey(e => e.UserId);
         });

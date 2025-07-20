@@ -1,8 +1,12 @@
+// דף הבניינים - מציג את רשימת הבניינים של המשתמש ומאפשר יצירת בניינים חדשים
+// Buildings page - displays user's buildings list and allows creating new buildings
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { buildingService } from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
 import { BUILDING_CONFIG } from '../config/config';
+import '../styles/BuildingsPage.css';
 
 const BuildingsPage = () => {
   const [buildings, setBuildings] = useState([]);
@@ -103,7 +107,7 @@ const BuildingsPage = () => {
   return (
     <div className="container">
       <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="buildings-header">
           <h2>My Buildings</h2>
           <button 
             className="btn" 
@@ -124,7 +128,7 @@ const BuildingsPage = () => {
         {error && <div className="error">{error}</div>}
 
         {showCreateForm && (
-          <div className="card" style={{ marginBottom: '20px' }}>
+          <div className="card create-form-container">
             <h3>Create New Building</h3>
             <form onSubmit={handleCreateBuilding}>
               <div className="form-group">
@@ -137,7 +141,7 @@ const BuildingsPage = () => {
                   onChange={handleNameChange}
                   required
                 />
-                {nameError && <div className="error-message" style={{ color: '#dc3545', fontSize: '14px', marginTop: '5px' }}>{nameError}</div>}
+                {nameError && <div className="error-message">{nameError}</div>}
               </div>
               <div className="form-group">
                 <label htmlFor="numberOfFloors">Number of Floors</label>
@@ -151,7 +155,7 @@ const BuildingsPage = () => {
                   onChange={(e) => setNewBuilding({ ...newBuilding, numberOfFloors: e.target.value })}
                   required
                 />
-                <small style={{ color: '#666', fontSize: '12px' }}>
+                <small className="form-help-text">
                   Minimum: {BUILDING_CONFIG.MIN_FLOORS}, Maximum: {BUILDING_CONFIG.MAX_FLOORS}
                 </small>
               </div>
@@ -163,7 +167,7 @@ const BuildingsPage = () => {
         )}
 
         {buildings.length === 0 ? (
-          <div className="card">
+          <div className="card empty-state">
             <p>No buildings found. Create your first building to get started!</p>
           </div>
         ) : (
