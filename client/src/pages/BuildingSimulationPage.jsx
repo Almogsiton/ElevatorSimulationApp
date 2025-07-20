@@ -135,12 +135,12 @@ const BuildingSimulationPage = () => {
   const handleCallElevator = async (floor, direction) => {
     // מניעת כפילות ב-pendingCalls
     if (pendingCalls.some(c => c.floor === floor && c.direction === direction)) {
-      showToast('כבר קיימת קריאה ממתינה לאותה קומה וכיוון');
+              showToast('A pending call already exists for this floor and direction');
       return;
     }
     // מניעת כפילות בקריאות פעילות
     if (floorCalls.some(c => c.requestedFloor === floor && c.direction === direction)) {
-      showToast('כבר קיימת קריאה פעילה לאותה קומה וכיוון');
+              showToast('An active call already exists for this floor and direction');
       return;
     }
     if (!isCallOnTheWay(floor, direction)) {
@@ -159,7 +159,7 @@ const BuildingSimulationPage = () => {
         if (idx === -1) return [...prev, newCall];
         return [...prev.slice(0, idx), newCall, ...prev.slice(idx)];
       });
-      showToast('הקריאה נשמרה לקריאות ממתינות ותישלח כאשר המעלית תשנה כיוון');
+      showToast('Call saved to pending calls and will be sent when elevator changes direction');
       return;
     }
     try {
@@ -182,14 +182,14 @@ const BuildingSimulationPage = () => {
         const call = await elevatorCallService.createCall(numericBuildingId, floor);
         setError('');
         loadCalls();
-        showToast(`קריאה לקומה ${floor} נשלחה`);
+        showToast(`Call to floor ${floor} sent`);
       } catch (error) {
         setError(error.message);
       }
     } else {
       // הקומה לא על הדרך - הוסף לקריאות ממתינות
       if (pendingCalls.some(c => c.floor === floor)) {
-        showToast('כבר קיימת קריאה ממתינה לקומה זו');
+        showToast('A pending call already exists for this floor');
         return;
       }
       
@@ -216,7 +216,7 @@ const BuildingSimulationPage = () => {
         if (idx === -1) return [...prev, newCall];
         return [...prev.slice(0, idx), newCall, ...prev.slice(idx)];
       });
-      showToast(`קריאה לקומה ${floor} נשמרה לקריאות ממתינות`);
+      showToast(`Call to floor ${floor} saved to pending calls`);
     }
   };
 
@@ -371,7 +371,7 @@ const BuildingSimulationPage = () => {
           await elevatorCallService.createCall(numericBuildingId, call.floor);
         });
         setPendingCalls(callsToKeep);
-        showToast('קריאות ממתינות רלוונטיות נשלחו למעלית');
+        showToast('Relevant pending calls sent to elevator');
         loadCalls();
       }
     }
@@ -422,7 +422,7 @@ const BuildingSimulationPage = () => {
           await elevatorCallService.createCall(numericBuildingId, call.floor);
         });
         setPendingCalls(callsToKeep);
-        showToast('קריאות ממתינות רלוונטיות נשלחו למעלית');
+        showToast('Relevant pending calls sent to elevator');
         loadCalls();
       }
     }
@@ -526,23 +526,23 @@ const BuildingSimulationPage = () => {
         {/* Requests lists */}
         <div className="requests-lists" style={{ display: 'flex', gap: '24px', marginTop: '32px', justifyContent: 'center' }}>
           <div className="card floor-calls-table">
-            <h4>קריאות לקומה</h4>
+            <h4>Floor Calls</h4>
             <ul style={{ paddingInlineStart: 18 }}>
-              {sortedFloorCalls.length === 0 && <li style={{ color: '#888' }}>אין קריאות פעילות</li>}
+              {sortedFloorCalls.length === 0 && <li style={{ color: '#888' }}>No active calls</li>}
               {sortedFloorCalls.map(call => (
                 <li key={call.id}>
-                  קומה {call.requestedFloor} ({new Date(call.callTime).toLocaleTimeString()})
+                  Floor {call.requestedFloor} ({new Date(call.callTime).toLocaleTimeString()})
                 </li>
               ))}
             </ul>
           </div>
           <div className="card pending-calls-table">
-            <h4>קריאות ממתינות</h4>
+            <h4>Pending Calls</h4>
             <ul style={{ paddingInlineStart: 18 }}>
-              {sortedPendingCalls.length === 0 && <li style={{ color: '#888' }}>אין קריאות ממתינות</li>}
+              {sortedPendingCalls.length === 0 && <li style={{ color: '#888' }}>No pending calls</li>}
               {sortedPendingCalls.map((call, idx) => (
                 <li key={call.floor + '-' + call.direction + '-' + call.time + '-' + idx}>
-                  קומה {call.floor} ({call.direction})
+                  Floor {call.floor} ({call.direction})
                 </li>
               ))}
             </ul>
