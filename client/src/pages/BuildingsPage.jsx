@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { buildingService } from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
+import { BUILDING_CONFIG } from '../config/config';
 
 const BuildingsPage = () => {
   const [buildings, setBuildings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newBuilding, setNewBuilding] = useState({ name: '', numberOfFloors: '1' });
+  const [newBuilding, setNewBuilding] = useState({ name: '', numberOfFloors: BUILDING_CONFIG.MIN_FLOORS.toString() });
   const [creating, setCreating] = useState(false);
+  const [nameError, setNameError] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -33,9 +35,29 @@ const BuildingsPage = () => {
     setCreating(true);
 
     try {
+      // בדוק אם מספר הקומות בטווח הנכון
+      const floors = parseInt(newBuilding.numberOfFloors);
+      if (floors < BUILDING_CONFIG.MIN_FLOORS || floors > BUILDING_CONFIG.MAX_FLOORS) {
+        setError(`Number of floors must be between ${BUILDING_CONFIG.MIN_FLOORS} and ${BUILDING_CONFIG.MAX_FLOORS}`);
+        setCreating(false);
+        return;
+      }
+
+      // בדוק אם כבר קיים בניין עם אותו שם
+      const existingBuilding = buildings.find(building => 
+        building.name.toLowerCase().trim() === newBuilding.name.toLowerCase().trim()
+      );
+      
+      if (existingBuilding) {
+        setError('A building with this name already exists. Please choose a different name.');
+        setCreating(false);
+        return;
+      }
+
       await buildingService.createBuilding(newBuilding.name, parseInt(newBuilding.numberOfFloors), user.userId);
       setNewBuilding({ name: '', numberOfFloors: '1' });
       setShowCreateForm(false);
+      setError(''); // נקה שגיאות קודמות
       await loadBuildings();
     } catch (error) {
       setError(error.message);
@@ -46,6 +68,26 @@ const BuildingsPage = () => {
 
   const handleBuildingClick = (buildingId) => {
     navigate(`/building/${buildingId}`);
+  };
+
+  const handleNameChange = (e) => {
+    const name = e.target.value;
+    setNewBuilding({ ...newBuilding, name });
+    
+    // בדוק אם השם כבר קיים
+    if (name.trim()) {
+      const existingBuilding = buildings.find(building => 
+        building.name.toLowerCase().trim() === name.toLowerCase().trim()
+      );
+      
+      if (existingBuilding) {
+        setNameError('A building with this name already exists');
+      } else {
+        setNameError('');
+      }
+    } else {
+      setNameError('');
+    }
   };
 
   if (loading) {
@@ -65,7 +107,15 @@ const BuildingsPage = () => {
           <h2>My Buildings</h2>
           <button 
             className="btn" 
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => {
+              setShowCreateForm(!showCreateForm);
+              if (showCreateForm) {
+                // אם סוגרים את הטופס, נקה שגיאות ושדות
+                setNewBuilding({ name: '', numberOfFloors: BUILDING_CONFIG.MIN_FLOORS.toString() });
+                setNameError('');
+                setError('');
+              }
+            }}
           >
             {showCreateForm ? 'Cancel' : 'Add Building'}
           </button>
@@ -82,11 +132,12 @@ const BuildingsPage = () => {
                 <input
                   type="text"
                   id="buildingName"
-                  className="form-control"
+                  className={`form-control ${nameError ? 'error' : ''}`}
                   value={newBuilding.name}
-                  onChange={(e) => setNewBuilding({ ...newBuilding, name: e.target.value })}
+                  onChange={handleNameChange}
                   required
                 />
+                {nameError && <div className="error-message" style={{ color: '#dc3545', fontSize: '14px', marginTop: '5px' }}>{nameError}</div>}
               </div>
               <div className="form-group">
                 <label htmlFor="numberOfFloors">Number of Floors</label>
@@ -94,14 +145,17 @@ const BuildingsPage = () => {
                   type="number"
                   id="numberOfFloors"
                   className="form-control"
-                  min="1"
-                  max="100"
+                  min={BUILDING_CONFIG.MIN_FLOORS}
+                  max={BUILDING_CONFIG.MAX_FLOORS}
                   value={newBuilding.numberOfFloors}
                   onChange={(e) => setNewBuilding({ ...newBuilding, numberOfFloors: e.target.value })}
                   required
                 />
+                <small style={{ color: '#666', fontSize: '12px' }}>
+                  Minimum: {BUILDING_CONFIG.MIN_FLOORS}, Maximum: {BUILDING_CONFIG.MAX_FLOORS}
+                </small>
               </div>
-              <button type="submit" className="btn" disabled={creating}>
+              <button type="submit" className="btn" disabled={creating || nameError || !newBuilding.name.trim()}>
                 {creating ? 'Creating...' : 'Create Building'}
               </button>
             </form>
