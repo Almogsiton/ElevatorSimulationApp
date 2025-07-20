@@ -4,7 +4,8 @@ const ElevatorShaft = ({
   building, 
   elevator, 
   handleCallElevator, 
-  handleSelectDestination 
+  handleSelectDestination,
+  handleFloorNumberCall 
 }) => {
   return (
     <div className="building-shaft-container">
@@ -15,12 +16,12 @@ const ElevatorShaft = ({
             className={`building-floor-row${elevator.currentFloor === floor ? ' current-floor-row' : ''}`}
           >
             <div className="floor-buttons-row" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              {/* Floor number button (simulates elevator panel) */}
+              {/* Floor number button (creates new call) */}
               <button
                 className="floor-btn floor-number-btn"
-                onClick={() => handleSelectDestination(floor)}
+                onClick={() => handleFloorNumberCall(floor)}
                 disabled={elevator.currentFloor === floor}
-                title={elevator.currentFloor === floor ? 'You are here' : 'Go to floor ' + floor}
+                title={elevator.currentFloor === floor ? 'You are here' : 'Call elevator to floor ' + floor}
               >
                 {floor}
               </button>

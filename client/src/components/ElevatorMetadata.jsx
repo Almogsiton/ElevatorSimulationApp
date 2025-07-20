@@ -5,7 +5,6 @@ const ElevatorMetadata = ({
   elevator, 
   activeCall, 
   sortedFloorCalls, 
-  elevatorRequests, 
   sortedPendingCalls 
 }) => {
   return (
@@ -52,20 +51,6 @@ const ElevatorMetadata = ({
           color: sortedFloorCalls.length > 0 ? '#856404' : '#6c757d'
         }}>
           {sortedFloorCalls.length}
-        </span>
-      </div>
-
-      {/* Elevator Destinations */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontWeight: 'bold', color: '#495057' }}>Destinations:</span>
-        <span style={{ 
-          padding: '2px 6px', 
-          backgroundColor: elevatorRequests.length > 0 ? '#d1ecf1' : '#e9ecef',
-          borderRadius: '4px',
-          fontSize: '14px',
-          color: elevatorRequests.length > 0 ? '#0c5460' : '#6c757d'
-        }}>
-          {elevatorRequests.length}
         </span>
       </div>
 

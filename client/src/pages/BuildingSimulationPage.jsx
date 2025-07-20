@@ -128,6 +128,21 @@ const BuildingSimulationPage = () => {
   const getPendingCallPriority = (call, elevator, building) => {
     if (!elevator || elevator.direction === 'None' || elevator.direction === 2) return 0;
     const maxFloor = building?.numberOfFloors ? building.numberOfFloors - 1 : 0;
+    
+    // Handle floorNumber calls
+    if (call.type === 'floorNumber') {
+      if (elevator.direction === 'up' || elevator.direction === 0) {
+        if (call.floor < elevator.currentFloor) return 1; // Going down from higher floor
+        return 2; // Going up
+      }
+      if (elevator.direction === 'down' || elevator.direction === 1) {
+        if (call.floor > elevator.currentFloor) return 1; // Going up from lower floor
+        return 2; // Going down
+      }
+      return 0;
+    }
+    
+    // Handle regular direction-based calls
     if (elevator.direction === 'up' || elevator.direction === 0) {
       if (call.direction === 'down') return 1;
       if (call.floor === 0 && call.direction === 'up') return 1;
@@ -194,6 +209,75 @@ const BuildingSimulationPage = () => {
     }
   };
 
+  // New function to handle floor number button clicks
+  const handleFloorNumberCall = async (floor) => {
+    // Prevent duplicates in pendingCalls
+    if (pendingCalls.some(c => c.floor === floor && c.type === 'floorNumber')) {
+      showToast('Call already pending for this floor');
+      return;
+    }
+    // Prevent duplicates in active calls
+    if (floorCalls.some(c => c.requestedFloor === floor)) {
+      showToast('Active call already exists for this floor');
+      return;
+    }
+
+    // Check if the floor is "on the way" for the elevator
+    const isOnTheWay = isFloorOnTheWay(floor);
+    
+    if (isOnTheWay) {
+      // Add to Floor Calls (immediate call)
+      try {
+        const call = await elevatorCallService.createCall(numericBuildingId, floor);
+        setError('');
+        loadCalls();
+        showToast(`Call created for floor ${floor} (on the way)`);
+      } catch (error) {
+        setError(error.message);
+      }
+    } else {
+      // Add to Pending Calls
+      setPendingCalls(prev => {
+        const newCall = { 
+          floor, 
+          type: 'floorNumber', 
+          time: Date.now(),
+          direction: floor > elevator.currentFloor ? 'up' : 'down'
+        };
+        // Prevent duplicates (extra safety)
+        if (prev.some(c => c.floor === floor && c.type === 'floorNumber')) return prev;
+        const idx = prev.findIndex(c => {
+          const pNew = getPendingCallPriority(newCall, elevator, building);
+          const pC = getPendingCallPriority(c, elevator, building);
+          if (pNew < pC) return true;
+          if (pNew === pC && newCall.time < c.time) return true;
+          return false;
+        });
+        if (idx === -1) return [...prev, newCall];
+        return [...prev.slice(0, idx), newCall, ...prev.slice(idx)];
+      });
+      showToast(`Call saved to pending calls for floor ${floor} (not on the way)`);
+    }
+  };
+
+  // Helper: Is the floor "on the way" for the elevator?
+  const isFloorOnTheWay = (floor) => {
+    if (!elevator) return true;
+    if (elevator.status === 'Idle' || elevator.direction === 'None' || elevator.direction === 2) return true;
+    
+    // Going up
+    if (elevator.direction === 'Up' || elevator.direction === 0) {
+      return floor >= elevator.currentFloor;
+    }
+    
+    // Going down
+    if (elevator.direction === 'Down' || elevator.direction === 1) {
+      return floor <= elevator.currentFloor;
+    }
+    
+    return false;
+  };
+
   // Call filters
   const floorCalls = calls.filter(c => c.destinationFloor === null);
   const elevatorRequests = calls.filter(c => c.destinationFloor !== null);
@@ -238,8 +322,12 @@ const BuildingSimulationPage = () => {
       const maxFloor = building?.numberOfFloors ? building.numberOfFloors - 1 : 0;
       
       // Check if all pending calls are in the same direction
-      const allUp = pendingCalls.every(call => call.direction === 'up');
-      const allDown = pendingCalls.every(call => call.direction === 'down');
+      const allUp = pendingCalls.every(call => 
+        call.direction === 'up' || (call.type === 'floorNumber' && call.floor > elevator.currentFloor)
+      );
+      const allDown = pendingCalls.every(call => 
+        call.direction === 'down' || (call.type === 'floorNumber' && call.floor < elevator.currentFloor)
+      );
       
       let newDirection = null;
       
@@ -250,9 +338,15 @@ const BuildingSimulationPage = () => {
       } else {
         // Mixed directions - need smarter logic
         // First, check if there are calls to go down from top floor
-        const downFromTop = pendingCalls.some(call => call.direction === 'down' && call.floor === maxFloor);
+        const downFromTop = pendingCalls.some(call => 
+          (call.direction === 'down' && call.floor === maxFloor) || 
+          (call.type === 'floorNumber' && call.floor === maxFloor)
+        );
         // Check if there are calls to go up from bottom floor
-        const upFromBottom = pendingCalls.some(call => call.direction === 'up' && call.floor === 0);
+        const upFromBottom = pendingCalls.some(call => 
+          (call.direction === 'up' && call.floor === 0) || 
+          (call.type === 'floorNumber' && call.floor === 0)
+        );
         
         if (downFromTop && elevator.currentFloor === maxFloor) {
           // Elevator at top floor and there's a call to go down - go down
@@ -273,7 +367,7 @@ const BuildingSimulationPage = () => {
           } else if (closestCall.floor < elevator.currentFloor) {
             newDirection = 'down';
           } else {
-            newDirection = closestCall.direction;
+            newDirection = closestCall.direction || (closestCall.type === 'floorNumber' ? 'up' : 'up');
           }
         }
       }
@@ -283,18 +377,34 @@ const BuildingSimulationPage = () => {
       const callsToKeep = [];
       
       pendingCalls.forEach(call => {
-        if (
-          (newDirection === 'up' && call.direction === 'up' && call.floor > elevator.currentFloor) ||
-          (newDirection === 'up' && call.direction === 'down' && call.floor === maxFloor) ||
-          (newDirection === 'down' && call.direction === 'down' && call.floor < elevator.currentFloor) ||
-          (newDirection === 'down' && call.direction === 'up' && call.floor === 0) ||
-          // Edge case: all calls in same direction, then release all
-          (allUp && newDirection === 'up' && call.direction === 'up') ||
-          (allDown && newDirection === 'down' && call.direction === 'down')
-        ) {
-          callsToSend.push(call);
+        // Handle floorNumber calls
+        if (call.type === 'floorNumber') {
+          if (
+            (newDirection === 'up' && call.floor > elevator.currentFloor) ||
+            (newDirection === 'down' && call.floor < elevator.currentFloor) ||
+            // Edge case: all calls in same direction, then release all
+            (allUp && newDirection === 'up') ||
+            (allDown && newDirection === 'down')
+          ) {
+            callsToSend.push(call);
+          } else {
+            callsToKeep.push(call);
+          }
         } else {
-          callsToKeep.push(call);
+          // Handle regular direction-based calls
+          if (
+            (newDirection === 'up' && call.direction === 'up' && call.floor > elevator.currentFloor) ||
+            (newDirection === 'up' && call.direction === 'down' && call.floor === maxFloor) ||
+            (newDirection === 'down' && call.direction === 'down' && call.floor < elevator.currentFloor) ||
+            (newDirection === 'down' && call.direction === 'up' && call.floor === 0) ||
+                      // Edge case: all calls in same direction, then release all
+          (allUp && newDirection === 'up' && (call.direction === 'up' || call.type === 'floorNumber')) ||
+          (allDown && newDirection === 'down' && (call.direction === 'down' || call.type === 'floorNumber'))
+          ) {
+            callsToSend.push(call);
+          } else {
+            callsToKeep.push(call);
+          }
         }
       });
       
@@ -324,15 +434,28 @@ const BuildingSimulationPage = () => {
       const callsToSend = [];
       const callsToKeep = [];
       pendingCalls.forEach(call => {
-        if (
-          (newDirection === 'up' && call.direction === 'up' && call.floor > elevator.currentFloor) ||
-          (newDirection === 'up' && call.direction === 'down' && call.floor === maxFloor) ||
-          (newDirection === 'down' && call.direction === 'down' && call.floor < elevator.currentFloor) ||
-          (newDirection === 'down' && call.direction === 'up' && call.floor === 0)
-        ) {
-          callsToSend.push(call);
+        // Handle floorNumber calls
+        if (call.type === 'floorNumber') {
+          if (
+            (newDirection === 'up' && call.floor > elevator.currentFloor) ||
+            (newDirection === 'down' && call.floor < elevator.currentFloor)
+          ) {
+            callsToSend.push(call);
+          } else {
+            callsToKeep.push(call);
+          }
         } else {
-          callsToKeep.push(call);
+          // Handle regular direction-based calls
+          if (
+            (newDirection === 'up' && call.direction === 'up' && call.floor > elevator.currentFloor) ||
+            (newDirection === 'up' && call.direction === 'down' && call.floor === maxFloor) ||
+            (newDirection === 'down' && call.direction === 'down' && call.floor < elevator.currentFloor) ||
+            (newDirection === 'down' && call.direction === 'up' && call.floor === 0)
+          ) {
+            callsToSend.push(call);
+          } else {
+            callsToKeep.push(call);
+          }
         }
       });
       if (callsToSend.length > 0) {
@@ -403,7 +526,6 @@ const BuildingSimulationPage = () => {
           elevator={elevator}
           activeCall={activeCall}
           sortedFloorCalls={sortedFloorCalls}
-          elevatorRequests={elevatorRequests}
           sortedPendingCalls={sortedPendingCalls}
         />
 
@@ -426,12 +548,12 @@ const BuildingSimulationPage = () => {
           elevator={elevator}
           handleCallElevator={handleCallElevator}
           handleSelectDestination={handleSelectDestination}
+          handleFloorNumberCall={handleFloorNumberCall}
         />
 
         {/* Calls Details */}
         <CallsDetails 
           sortedFloorCalls={sortedFloorCalls}
-          elevatorRequests={elevatorRequests}
           sortedPendingCalls={sortedPendingCalls}
         />
       </div>
