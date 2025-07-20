@@ -44,14 +44,11 @@ const BuildingSimulationPage = () => {
 
   useEffect(() => {
     if (elevator && calls.length > 0) {
-      // בדוק אם המעלית הגיעה לקומה עם קריאה פעילה או יעד פעיל
+      // בדוק אם המעלית הגיעה לקומה עם קריאה פעילה
       const currentFloor = elevator.currentFloor;
       const floorCall = floorCalls.find(c => c.requestedFloor === currentFloor);
-      const elevatorRequest = elevatorRequests.find(c => c.destinationFloor === currentFloor);
       if (floorCall) {
         showToast(`Elevator arrived at floor ${currentFloor + 1} (call)`);
-      } else if (elevatorRequest) {
-        showToast(`Elevator arrived at floor ${currentFloor + 1} (destination)`);
       }
     }
     // eslint-disable-next-line
@@ -175,6 +172,43 @@ const BuildingSimulationPage = () => {
     }
   };
 
+  const handleFloorNumberClick = async (floor) => {
+    if (elevator.currentFloor === floor) return;
+    
+    // בדוק אם הקומה על הדרך
+    if (isCallOnTheWay(floor, 'up') || isCallOnTheWay(floor, 'down')) {
+      // הקומה על הדרך - הוסף לקריאות לקומה
+      try {
+        const call = await elevatorCallService.createCall(numericBuildingId, floor);
+        setError('');
+        loadCalls();
+        showToast(`קריאה לקומה ${floor} נשלחה`);
+      } catch (error) {
+        setError(error.message);
+      }
+    } else {
+      // הקומה לא על הדרך - הוסף לקריאות ממתינות
+      if (pendingCalls.some(c => c.floor === floor)) {
+        showToast('כבר קיימת קריאה ממתינה לקומה זו');
+        return;
+      }
+      
+      setPendingCalls(prev => {
+        const newCall = { floor, direction: 'up', time: Date.now() }; // כיוון ברירת מחדל
+        const idx = prev.findIndex(c => {
+          const pNew = getPendingCallPriority(newCall, elevator, building);
+          const pC = getPendingCallPriority(c, elevator, building);
+          if (pNew < pC) return true;
+          if (pNew === pC && newCall.time < c.time) return true;
+          return false;
+        });
+        if (idx === -1) return [...prev, newCall];
+        return [...prev.slice(0, idx), newCall, ...prev.slice(idx)];
+      });
+      showToast(`קריאה לקומה ${floor} נשמרה לקריאות ממתינות`);
+    }
+  };
+
   const handleSelectDestination = async (destinationFloor) => {
     if (!activeCall) return;
     try {
@@ -196,16 +230,12 @@ const BuildingSimulationPage = () => {
 
   // פילטרים לבקשות
   const floorCalls = calls.filter(c => c.destinationFloor === null);
-  const elevatorRequests = calls.filter(c => c.destinationFloor !== null);
 
   // Split floorCalls into up and down calls
   const upCalls = floorCalls.filter(c => c.direction === 'up');
   const downCalls = floorCalls.filter(c => c.direction === 'down');
 
-  // הוסף פונקציה לבדיקת יעד פעיל
-  const isDestinationActive = (floor) => {
-    return elevatorRequests.some(c => c.destinationFloor + 1 === floor);
-  };
+
 
   // Helper: האם הקריאה "על הדרך"?
   const isCallOnTheWay = (floor, direction) => {
@@ -250,7 +280,7 @@ const BuildingSimulationPage = () => {
   useEffect(() => {
     if (!elevator || pendingCalls.length === 0) return;
     const isElevatorFree = (elevator.status === 'Idle' || elevator.direction === 'None' || elevator.direction === 2);
-    if (isElevatorFree && floorCalls.length === 0 && elevatorRequests.length === 0 && pendingCalls.length > 0) {
+    if (isElevatorFree && floorCalls.length === 0 && pendingCalls.length > 0) {
       const maxFloor = building?.numberOfFloors ? building.numberOfFloors - 1 : 0;
       
       // בדוק אם כל הקריאות הממתינות הן באותו כיוון
@@ -324,7 +354,7 @@ const BuildingSimulationPage = () => {
       }
     }
     // eslint-disable-next-line
-  }, [elevator?.status, elevator?.direction, floorCalls, elevatorRequests, pendingCalls]);
+  }, [elevator?.status, elevator?.direction, floorCalls, pendingCalls]);
 
   // שליחת קריאות ממתינות בעת שינוי כיוון
   const prevDirectionRef = useRef();
@@ -416,17 +446,7 @@ const BuildingSimulationPage = () => {
         <div className="elevator-status-bar">
           <ElevatorStatus elevator={elevator} />
         </div>
-        {activeCall && (
-          <div className="card" style={{ marginTop: '20px' }}>
-            <h3>Active Call</h3>
-            <p>Calling elevator to floor {activeCall.requestedFloor}</p>
-            {elevator.doorStatus === 'Open' && elevator.currentFloor === activeCall.requestedFloor && (
-              <p style={{ color: '#28a745', fontWeight: 'bold' }}>
-                Elevator arrived! Select your destination floor.
-              </p>
-            )}
-          </div>
-        )}
+
         <div className="building-shaft-container">
           <div className="building-shaft" style={{ height: 60 * building.numberOfFloors }}>
             {Array.from({ length: building.numberOfFloors }, (_, i) => building.numberOfFloors - 1 - i).map((floor) => (
@@ -438,7 +458,7 @@ const BuildingSimulationPage = () => {
                   {/* Floor number button (simulates elevator panel) */}
                   <button
                     className="floor-btn floor-number-btn"
-                    onClick={() => handleSelectDestination(floor)}
+                    onClick={() => handleFloorNumberClick(floor)}
                     disabled={elevator.currentFloor === floor}
                     title={elevator.currentFloor === floor ? 'You are here' : 'Go to floor ' + floor}
                   >
@@ -476,17 +496,6 @@ const BuildingSimulationPage = () => {
               {sortedFloorCalls.map(call => (
                 <li key={call.id}>
                   קומה {call.requestedFloor} ({new Date(call.callTime).toLocaleTimeString()})
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="card elevator-requests-table">
-            <h4>יעדים מתוך המעלית</h4>
-            <ul style={{ paddingInlineStart: 18 }}>
-              {elevatorRequests.length === 0 && <li style={{ color: '#888' }}>אין יעדים פעילים</li>}
-              {elevatorRequests.map(call => (
-                <li key={call.id}>
-                  {`מקור: קומה ${call.requestedFloor} → יעד: קומה ${call.destinationFloor} (${new Date(call.callTime).toLocaleTimeString()})`}
                 </li>
               ))}
             </ul>
