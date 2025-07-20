@@ -441,51 +441,85 @@ const BuildingSimulationPage = () => {
           <ElevatorStatus elevator={elevator} />
         </div>
 
-        <div className="building-shaft-container">
-          <div className="building-shaft" style={{ height: ELEVATOR_SIMULATION_CONFIG.FLOOR_HEIGHT * building.numberOfFloors }}>
-            {Array.from({ length: building.numberOfFloors }, (_, i) => building.numberOfFloors - 1 - i).map((floor) => (
-              <div
-                key={floor}
-                className={`building-floor-row${elevator.currentFloor === floor ? ' current-floor-row' : ''}`}
-              >
-                <div className="floor-buttons-row" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                  {/* Floor number button (simulates elevator panel) */}
-                  <button
-                    className="floor-btn floor-number-btn"
-                    onClick={() => handleFloorNumberClick(floor)}
-                    disabled={elevator.currentFloor === floor}
-                    title={elevator.currentFloor === floor ? 'You are here' : 'Go to floor ' + floor}
-                  >
-                    {floor}
-                  </button>
-                  {/* Up button */}
-                  {floor !== building.numberOfFloors - 1 && (
-                    <button
-                      className="floor-btn up"
-                      onClick={() => handleCallElevator(floor, 'up')}
-                      disabled={elevator.currentFloor === floor}
-                      title="Call elevator up"
-                    >▲</button>
-                  )}
-                  {/* Down button */}
-                  {floor !== 0 && (
-                    <button
-                      className="floor-btn down"
-                      onClick={() => handleCallElevator(floor, 'down')}
-                      disabled={elevator.currentFloor === floor}
-                      title="Call elevator down"
-                    >▼</button>
-                  )}
-                </div>
+        <div className="building-layout">
+          {/* Floor Calls - Left Side */}
+          <div className="calls-section left-calls">
+            <div className="card">
+              <h4>Floor Calls</h4>
+              <div className="card-content">
+                {sortedFloorCalls.length === 0 ? (
+                  <span className="no-calls">No active calls</span>
+                ) : (
+                  sortedFloorCalls.map(call => (
+                    <div key={call.id} className="call-item">
+                      Floor {call.requestedFloor} ({new Date(call.callTime).toLocaleTimeString()})
+                    </div>
+                  ))
+                )}
               </div>
-            ))}
+            </div>
+          </div>
+
+          {/* Building Shaft - Center */}
+          <div className="building-shaft-container">
+            <div className="building-shaft" style={{ height: ELEVATOR_SIMULATION_CONFIG.FLOOR_HEIGHT * building.numberOfFloors }}>
+              {Array.from({ length: building.numberOfFloors }, (_, i) => building.numberOfFloors - 1 - i).map((floor) => (
+                <div
+                  key={floor}
+                  className={`building-floor-row${elevator.currentFloor === floor ? ' current-floor-row' : ''}`}
+                >
+                  <div className="floor-buttons-row" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    {/* Floor number button (simulates elevator panel) */}
+                    <button
+                      className="floor-btn floor-number-btn"
+                      onClick={() => handleFloorNumberClick(floor)}
+                      disabled={elevator.currentFloor === floor}
+                      title={elevator.currentFloor === floor ? 'You are here' : 'Go to floor ' + floor}
+                    >
+                      {floor}
+                    </button>
+                    {/* Up button */}
+                    {floor !== building.numberOfFloors - 1 && (
+                      <button
+                        className="floor-btn up"
+                        onClick={() => handleCallElevator(floor, 'up')}
+                        disabled={elevator.currentFloor === floor}
+                        title="Call elevator up"
+                      >▲</button>
+                    )}
+                    {/* Down button */}
+                    {floor !== 0 && (
+                      <button
+                        className="floor-btn down"
+                        onClick={() => handleCallElevator(floor, 'down')}
+                        disabled={elevator.currentFloor === floor}
+                        title="Call elevator down"
+                      >▼</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pending Calls - Right Side */}
+          <div className="calls-section right-calls">
+            <div className="card">
+              <h4>Pending Calls</h4>
+              <div className="card-content">
+                {sortedPendingCalls.length === 0 ? (
+                  <span className="no-calls">No pending calls</span>
+                ) : (
+                  sortedPendingCalls.map((call, idx) => (
+                    <div key={call.floor + '-' + (call.direction || call.type) + '-' + call.time + '-' + idx} className="call-item">
+                      Floor {call.floor} ({call.direction || call.type})
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
-        {/* Requests lists */}
-        <CallsDetails 
-          sortedFloorCalls={sortedFloorCalls}
-          sortedPendingCalls={sortedPendingCalls}
-        />
       </div>
     </div>
   );
